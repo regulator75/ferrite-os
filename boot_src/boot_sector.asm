@@ -11,7 +11,7 @@ KERNEL_OFFSET equ 0x1000 ; The same one we used when linking the kernel
 mov ah, 0x0e ; tty mode
 
 ; Set up stack
-mov bp, 0x9000 ; this is an address far away from 0x7c00 so that we don't get overwritten
+mov bp, 0x8000 ; this is an address far away from 0x7c00 so that we don't get overwritten
 mov sp, bp ; if the stack is empty then sp points to bp
 
 
@@ -30,6 +30,7 @@ mov sp, bp ; if the stack is empty then sp points to bp
 ;
 ; Switch to real mode, re-appear at BEGIN_PM below
 ;
+
 	call switch_to_pm
 	jmp $ ; this will actually never be executed
 
@@ -40,10 +41,10 @@ load_kernel:
     mov bx, MSG_LOADINGKERNEL
     call print
     mov bx, KERNEL_OFFSET ; Read from disk and store in 0x1000
-    mov dh, 2
+    mov dh, 4
     mov dl, [BOOT_DRIVE]
     call disk_load
-
+    
     mov bx, MSG_DONE
     call print    
     ret
@@ -61,7 +62,7 @@ MSG_32BIT_FAIL: db 'Failed to enter 32 bit mode',0
 MSG_32BIT: db 'Entered 32 bit mode',0
 MSG_LOADINGKERNEL: db 'Loading Kernel...',0
 MSG_DONE: db 'Done',0
-MSG_DEBUG: db "Debug",0
+MSG_DEBUG: db 'Debug',0
 BOOT_DRIVE db 0 ; It is a good idea to store it in memory because 'dl' may get overwritten
 
 

@@ -3,6 +3,12 @@
 
 POINTER_TABLE_BASE equ 0x2000
 
+%define PAGE_PRESENT    (1 << 0)
+%define PAGE_WRITE      (1 << 1)
+ 
+%define CODE_SEG     0x0008
+%define DATA_SEG     0x0010
+
 [bits 32]
 
 switch_to_longmode:
@@ -44,8 +50,6 @@ switch_to_longmode:
 	jz .NoCPUID
 	;;;ret  ;;;; Fall through and continue on.
 
-
-
 ;
 ;
 ; Is extended function avaliable?
@@ -85,40 +89,50 @@ switch_to_longmode:
 ;
 ;
 
-; Clear the current tables
-    mov edi, POINTER_TABLE_BASE    ; Set the destination index to POINTER_TABLE_BASE.
-    mov cr3, edi       ; Set control register 3 to the destination index.
-    xor eax, eax       ; Nullify the A-register.
-    mov ecx, 4096      ; Set the C-register to 4096.
-    rep stosd          ; Clear the memory.
-    mov edi, cr3       ; Set the destination index to control register 3.
-
-; Set the new ones up
-; 
-;;;; comments assume POINTER_TABLE_BASE==0x1000
-; PML4T - 0x1000.
-; PDPT - 0x2000.
-; PDT - 0x3000.
-; PT - 0x4000.
-	mov DWORD [edi], POINTER_TABLE_BASE+0x1003      ; Set the uint32_t at the destination index to 0x2003.
-    add edi, 0x1000              ; Add 0x1000 to the destination index.
-    mov DWORD [edi], POINTER_TABLE_BASE+0x2003      ; Set the uint32_t at the destination index to 0x3003.
-    add edi, 0x1000              ; Add 0x1000 to the destination index.
-    mov DWORD [edi], POINTER_TABLE_BASE+0x3003      ; Set the uint32_t at the destination index to 0x4003.
-    add edi, 0x1000              ; Add 0x1000 to the destination index.
+; Zero out the 16KiB buffer.
+; Since we are doing a rep stosd, count should be bytes/4.   
+    push di                           ; REP STOSD alters DI.
+    mov ecx, 0x1000
+    xor eax, eax
+    cld
+    rep stosd
+    pop di                            ; Get DI back.
 
 
-;
-; "So lets make PML4T[0] point to the PDPT and so on:"
-	mov ebx, 0x00000003          ; Set the B-register to 0x00000003.
-    mov ecx, 512                 ; Set the C-register to 512.
  
-.SetEntry:
-    mov DWORD [edi], ebx         ; Set the uint32_t at the destination index to the B-register.
-    add ebx, 0x1000              ; Add 0x1000 to the B-register.
-    add edi, 8                   ; Add eight to the destination index.
-    loop .SetEntry               ; Set the next entry.
+; Build the Page Map Level 4.
+; es:di points to the Page Map Level 4 table.
+    lea eax, [es:di + 0x1000]         ; Put the address of the Page Directory Pointer Table in to EAX.
+    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writable flag.
+    mov [es:di], eax                  ; Store the value of EAX as the first PML4E.
+ 
+ 
+; Build the Page Directory Pointer Table.
+    lea eax, [es:di + 0x2000]         ; Put the address of the Page Directory in to EAX.
+    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writable flag.
+    mov [es:di + 0x1000], eax         ; Store the value of EAX as the first PDPTE.
+ 
+ 
+; Build the Page Directory.
+    lea eax, [es:di + 0x3000]         ; Put the address of the Page Table in to EAX.
+    or eax, PAGE_PRESENT | PAGE_WRITE ; Or EAX with the flags - present flag, writeable flag.
+    mov [es:di + 0x2000], eax         ; Store to value of EAX as the first PDE.
+ 
+ 
+    push di                           ; Save DI for the time being.
+    lea di, [di + 0x3000]             ; Point DI to the page table.
+    mov eax, PAGE_PRESENT | PAGE_WRITE    ; Move the flags into EAX - and point it to 0x0000.
 
+
+    ; Build the Page Table.
+.LoopPageTable:
+    mov [es:di], eax
+    add eax, 0x1000
+    add di, 8
+    cmp eax, 0x200000                 ; If we did all 2MiB, end.
+    jb .LoopPageTable
+ 
+    pop di                            ; Restore DI.
 
 ;
 ; There's not much left to do. We should set the long mode bit in the EFER MSR and then we should enable 
@@ -133,6 +147,7 @@ switch_to_longmode:
     mov cr0, eax                 ; Set control register 0 to the A-register.
 
 
+
     mov ebx, MSG_SWITCHING_TO_LONGMODE
     call print_string_pm ; 
 
@@ -140,6 +155,8 @@ switch_to_longmode:
 	lgdt [GDT64.Pointer]         ; Load the 64-bit global descriptor table.
 	jmp GDT64.Code:BEGIN_64       ; Set the code segment and enter 64-bit long mode.
 
+    mov ebx, MSG_SWITCHING_TO_LONGMODE_FAIL
+    call print_string_pm ; 
 	jmp $ ; Not reached
 
 
@@ -161,8 +178,9 @@ switch_to_longmode:
 	ret
 
 
-MSG_NOLONGMODE: db 'No Long Mode',0
-MSG_NOCPUID: db 'No CPU ID',0
-MSG_NOTDONE: db 'More code needed',0
+MSG_NOLONGMODE: db 'NoLongMode',0
+MSG_NOCPUID: db 'NoCPUID',0
+MSG_NOTDONE: db 'More needed',0
 MSG_SWITCHING_TO_LONGMODE: db "Going longmode",0
+MSG_SWITCHING_TO_LONGMODE_FAIL: db "FAIL",0
 
