@@ -1,7 +1,7 @@
 ; 64bit-switch.asm
 ; Based on https://wiki.osdev.org/Setting_Up_Long_Mode
 
-
+POINTER_TABLE_BASE equ 0x2000
 
 [bits 32]
 
@@ -80,19 +80,13 @@ switch_to_longmode:
     mov cr0, eax                                   ; Set control register 0 to the A-register.
 
 
-	mov ebx, MSG_NOTDONE
-    call print_string_pm 
-    ret
-
-
-;
 ;
 ; Prepare the Funky tables for page-shit and shit
 ;
 ;
 
 ; Clear the current tables
-    mov edi, 0x1000    ; Set the destination index to 0x1000.
+    mov edi, POINTER_TABLE_BASE    ; Set the destination index to POINTER_TABLE_BASE.
     mov cr3, edi       ; Set control register 3 to the destination index.
     xor eax, eax       ; Nullify the A-register.
     mov ecx, 4096      ; Set the C-register to 4096.
@@ -101,15 +95,16 @@ switch_to_longmode:
 
 ; Set the new ones up
 ; 
+;;;; comments assume POINTER_TABLE_BASE==0x1000
 ; PML4T - 0x1000.
 ; PDPT - 0x2000.
 ; PDT - 0x3000.
 ; PT - 0x4000.
-	mov DWORD [edi], 0x2003      ; Set the uint32_t at the destination index to 0x2003.
+	mov DWORD [edi], POINTER_TABLE_BASE+0x1003      ; Set the uint32_t at the destination index to 0x2003.
     add edi, 0x1000              ; Add 0x1000 to the destination index.
-    mov DWORD [edi], 0x3003      ; Set the uint32_t at the destination index to 0x3003.
+    mov DWORD [edi], POINTER_TABLE_BASE+0x2003      ; Set the uint32_t at the destination index to 0x3003.
     add edi, 0x1000              ; Add 0x1000 to the destination index.
-    mov DWORD [edi], 0x4003      ; Set the uint32_t at the destination index to 0x4003.
+    mov DWORD [edi], POINTER_TABLE_BASE+0x3003      ; Set the uint32_t at the destination index to 0x4003.
     add edi, 0x1000              ; Add 0x1000 to the destination index.
 
 
@@ -125,10 +120,35 @@ switch_to_longmode:
     loop .SetEntry               ; Set the next entry.
 
 
-	mov ebx, MSG_NOTDONE
-    call print_string_pm 
+;
+; There's not much left to do. We should set the long mode bit in the EFER MSR and then we should enable 
+; paging and then we are in compatibility mode (which is part of long mode). So we first set the LM-bit:
+    mov ecx, 0xC0000080          ; Set the C-register to 0xC0000080, which is the EFER MSR.
+    rdmsr                        ; Read from the model-specific register.
+    or eax, 1 << 8               ; Set the LM-bit which is the 9th bit (bit 8).
+    wrmsr                        ; Write to the model-specific register.
+; Enable paging
+	mov eax, cr0                 ; Set the A-register to control register 0.
+    or eax, 1 << 31              ; Set the PG-bit, which is the 32nd bit (bit 31).
+    mov cr0, eax                 ; Set control register 0 to the A-register.
 
 
+    mov ebx, MSG_SWITCHING_TO_LONGMODE
+    call print_string_pm ; 
+
+
+	lgdt [GDT64.Pointer]         ; Load the 64-bit global descriptor table.
+	jmp GDT64.Code:BEGIN_64       ; Set the code segment and enter 64-bit long mode.
+
+	jmp $ ; Not reached
+
+
+
+
+
+
+
+[bits 32]
 
 .NoCPUID:
 	mov ebx, MSG_NOCPUID
@@ -144,3 +164,5 @@ switch_to_longmode:
 MSG_NOLONGMODE: db 'No Long Mode',0
 MSG_NOCPUID: db 'No CPU ID',0
 MSG_NOTDONE: db 'More code needed',0
+MSG_SWITCHING_TO_LONGMODE: db "Going longmode",0
+
