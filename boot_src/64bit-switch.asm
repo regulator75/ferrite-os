@@ -135,23 +135,23 @@ switch_to_longmode:
     pop di                            ; Restore DI.
 
 ;
-; There's not much left to do. We should set the long mode bit in the EFER MSR and then we should enable 
-; paging and then we are in compatibility mode (which is part of long mode). So we first set the LM-bit:
-    mov ecx, 0xC0000080          ; Set the C-register to 0xC0000080, which is the EFER MSR.
-    rdmsr                        ; Read from the model-specific register.
-    or eax, 1 << 8               ; Set the LM-bit which is the 9th bit (bit 8).
-    wrmsr                        ; Write to the model-specific register.
-; Enable paging
-	mov eax, cr0                 ; Set the A-register to control register 0.
-    or eax, 1 << 31              ; Set the PG-bit, which is the 32nd bit (bit 31).
-    mov cr0, eax                 ; Set control register 0 to the A-register.
-
-
-
-    mov ebx, MSG_SWITCHING_TO_LONGMODE
-    call print_string_pm ; 
-
-
+; Enter long mode.
+    mov eax, 10100000b                ; Set the PAE and PGE bit.
+    mov cr4, eax
+ 
+    mov edx, edi                      ; Point CR3 at the PML4.
+    mov cr3, edx
+ 
+    mov ecx, 0xC0000080               ; Read from the EFER MSR. 
+    rdmsr    
+ 
+    or eax, 0x00000100                ; Set the LME bit.
+    wrmsr
+ 
+    mov ebx, cr0                      ; Activate long mode -
+    or ebx,0x80000001                 ; - by enabling paging and protection simultaneously.
+    mov cr0, ebx                    
+ 
 	lgdt [GDT64.Pointer]         ; Load the 64-bit global descriptor table.
 	jmp GDT64.Code:BEGIN_64       ; Set the code segment and enter 64-bit long mode.
 
