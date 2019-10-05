@@ -8,3 +8,10 @@ Inspiration for OS bringup taken from https://github.com/cfenollosa/os-tutorial
 2. Get V8 building with custom toolchain with no libc to identify missing symbols for memory allocation etc
 3. Create LibC to fill in the gaps
 4. Real work begins. 
+
+
+## Method for building V8
+- Script checks out V8
+- Script chekcs tool dependencies (My "Cross compilers")
+- Scripts configures build system to generate binary
+
