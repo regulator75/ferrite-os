@@ -15,3 +15,5 @@ Inspiration for OS bringup taken from https://github.com/cfenollosa/os-tutorial
 - Script chekcs tool dependencies (My "Cross compilers")
 - Scripts configures build system to generate binary
 
+## Usefull links
+https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
