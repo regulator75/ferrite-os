@@ -17,3 +17,5 @@ Inspiration for OS bringup taken from https://github.com/cfenollosa/os-tutorial
 
 ## Usefull links
 https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
+https://blog.scaleprocess.net/building-v8-on-arch-linux/
+https://libcxx.llvm.org/docs/UsingLibcxx.html
