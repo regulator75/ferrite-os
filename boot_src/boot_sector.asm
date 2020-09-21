@@ -41,7 +41,7 @@ load_kernel:
     mov bx, MSG_LOADINGKERNEL
     call print
     mov bx, KERNEL_OFFSET ; Read from disk and store in 0x1000
-    mov dh, 4
+    mov dh, 8
     mov dl, [BOOT_DRIVE]
     call disk_load
     
