@@ -1,6 +1,6 @@
 ;kernel.asm
 
-[org 0x1000]
+;[org 0x1000]
 [bits 32]
 kernel_main:
     mov ebx, MSG_KERNEL_RUNNING
@@ -21,7 +21,7 @@ MSG_KERNEL_RUNNING: db 'Kernel running...',0
 %include "boot_src/64bit-gdt.asm"
 
 MSG_64_IS_DA_SHIT: db 'Kernel running in 64 bit mode YEAH!',0
-
+MSG_64_FROM_C_IS_DA_SHIT: db 'This printout came from C',0
 
 
 
@@ -58,6 +58,9 @@ BEGIN_64:
 
 	mov rbx, MSG_64_IS_DA_SHIT	
 	call print64_string_pm
+
+    [extern kernel_c_entry]
+    call kernel_c_entry
 
 ;    cli                           ; Clear the interrupt flag.
 ;    mov ax, GDT64.Data            ; Set the A-register to the data descriptor.
