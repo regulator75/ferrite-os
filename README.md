@@ -25,6 +25,9 @@ https://blog.scaleprocess.net/building-v8-on-arch-linux/
 
 https://libcxx.llvm.org/docs/UsingLibcxx.html
 
+Interrupts in 64 bit mode
+https://0xax.gitbooks.io/linux-insides/content/Interrupts/linux-interrupts-1.html
+
 ## Building the tools on macOS
 
 - Go to a tmp folder
