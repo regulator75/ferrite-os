@@ -41,6 +41,9 @@ isr_common_stub:
 	call interupt_service_request_handler
 	
     ; 3. Restore state
+    ; (Note on 64 bit, im not sure if we actually need to do this
+    ; but most reference code suggest this is wholesome. Revisit
+    ; when we introduce processes and privelage levels)
 	pop rax 
 	mov ds, ax
 	mov es, ax
@@ -148,9 +151,10 @@ asm_isr7:
     push byte 7
     jmp isr_common_stub
 
-; 8: Double Fault Exception (With Error Code!)
+; 8: Double Fault Exception
 asm_isr8:
     cli
+    ; Error code already pushed here
     push byte 8
     jmp isr_common_stub
 
@@ -161,33 +165,38 @@ asm_isr9:
     push byte 9
     jmp isr_common_stub
 
-; 10: Bad TSS Exception (With Error Code!)
+; 10: Bad TSS Exception
 asm_isr10:
     cli
+    ; Error code already pushed here
     push byte 10
     jmp isr_common_stub
 
-; 11: Segment Not Present Exception (With Error Code!)
+; 11: Segment Not Present Exception
 asm_isr11:
     cli
+    ; Error code already pushed here
     push byte 11
     jmp isr_common_stub
 
-; 12: Stack Fault Exception (With Error Code!)
+; 12: Stack Fault Exception
 asm_isr12:
     cli
+    ; Error code already pushed here
     push byte 12
     jmp isr_common_stub
 
-; 13: General Protection Fault Exception (With Error Code!)
+; 13: General Protection Fault Exception
 asm_isr13:
     cli
+    ; Error code already pushed here
     push byte 13
     jmp isr_common_stub
 
-; 14: Page Fault Exception (With Error Code!)
+; 14: Page Fault Exception
 asm_isr14:
     cli
+    ; Error code already pushed here
     push byte 14
     jmp isr_common_stub
 

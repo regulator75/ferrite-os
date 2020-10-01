@@ -3,6 +3,7 @@
 //
 
 #include "console.h"
+#include "interrupts.h"
 
 class CppLibTesterClazz{
 public:
@@ -21,6 +22,9 @@ volatile CppLibTesterClazz * p_instance;
 
 extern "C" void kernel_c_entry(void) {
 	console_init();
+	interrupts_install();
+	volatile int b = 0;
+
 
 	char * video_mem = (char*)0xb8000;
 	*video_mem = 'V';
@@ -31,6 +35,12 @@ extern "C" void kernel_c_entry(void) {
 
 	console_kprint("\nTesting multi line\nSecond line");
 
+	// trigger division by zero
+	//int a = 4/b;
+
+	for(int i = 0 ; i < 100 ; i++) {
+		console_kprint("\nIteration: "); console_kprint_int(i);
+	}
 	while(true)
 		;
 }
