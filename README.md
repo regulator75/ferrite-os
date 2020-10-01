@@ -9,9 +9,9 @@ Inspiration for OS bringup taken from https://github.com/cfenollosa/os-tutorial
 3. Create LibC to fill in the gaps
 4. Real work begins. 
 
-## Building
-1. Check out this repo
-2. Run qemu-system-x86_64 -fda obj/os.bin   (The -fda trick is apparantly a workaround as hightlighted in https://github.com/cfenollosa/os-tutorial/tree/master/07-bootsector-disk)
+## Running
+1. Run qemu-system-x86_64 -fda obj/os.bin   (The -fda trick is apparantly a workaround as hightlighted in https://github.com/cfenollosa/os-tutorial/tree/master/07-bootsector-disk)
+
 
 ## Method for building V8
 - Script checks out V8

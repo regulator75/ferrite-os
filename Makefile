@@ -4,6 +4,9 @@ os.bin: obj/boot_sector.bin obj/kernel_combined.bin
 obj/boot_sector.bin: boot_src/boot_sector.asm
 	nasm -f bin boot_src/boot_sector.asm -o obj/boot_sector.bin
 
+obj/interrupts_lowlevel.o: boot_src/interrupts_lowlevel.asm
+	nasm -f elf64 boot_src/interrupts_lowlevel.asm -o obj/interrupts_lowlevel.o 
+
 obj/kernel.o: boot_src/kernel.asm
 	nasm -f elf64 boot_src/kernel.asm -o obj/kernel.o
 
@@ -13,9 +16,14 @@ obj/kernel_cpp.o: boot_src/kernel.cpp
 obj/console.o: boot_src/console.cpp
 	/usr/local/x86_64elfgcc/bin/x86_64-elf-gcc  -ffreestanding -c boot_src/console.cpp -o obj/console.o
 
+obj/interrupts.o: boot_src/interrupts.cpp
+	/usr/local/x86_64elfgcc/bin/x86_64-elf-gcc  -ffreestanding -c boot_src/interrupts.cpp -o obj/interrupts.o
 
-obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o
-	/usr/local/x86_64elfgcc/bin/x86_64-elf-ld -o obj/kernel_combined.bin -Ttext 0x1000 --oformat binary obj/kernel.o obj/kernel_cpp.o obj/console.o
+obj/memory.o: boot_src/memory.cpp
+	/usr/local/x86_64elfgcc/bin/x86_64-elf-gcc  -ffreestanding -c boot_src/memory.cpp -o obj/memory.o
+
+obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o
+	/usr/local/x86_64elfgcc/bin/x86_64-elf-ld -o obj/kernel_combined.bin -Ttext 0x1000 -Tdata 0x20000 --oformat binary obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o
 
 clean:
 	rm obj/*.bin 

@@ -1,5 +1,6 @@
 
-#include  "stdint.h"
+#include "stdint.h"
+#include "memory.h"
 
 #define VIDEO_ADDRESS ((char*)0xb8000)
 #define MAX_ROWS 25
@@ -25,6 +26,7 @@ int print_char(char c, int col, int row, char attr);
 int get_offset(int col, int row);
 int get_offset_row(int offset);
 int get_offset_col(int offset);
+void int_to_ascii_unsafe(int i, char * buff);
 
 // /**********************************************************
 //  * Public Kernel API functions                            *
@@ -56,22 +58,14 @@ void console_kprint_at(const char *message, int col, int row) {
 }
 
 
-void console_kprint_at_disabled(const char *message, int colp, int rowp) {
-    /* Set cursor if col/row are negative */
-    int offset;
-    int col=0;
-    int row=0;
-    /* Loop through message and print it */
-    int i = 0;
-    while (message[i] != 0) {
-        offset = print_char(message[i++], col, row, WHITE_ON_BLACK);
-        /* Compute row/col for next iteration */
-        col++;
-    }
-}
-
 void console_kprint(const char *message) {
     console_kprint_at(message, -1, -1);
+}
+
+void console_kprint_int(int i) {
+    char numberbuff[21];// "-9223372036854775806"
+    int_to_ascii_unsafe(i,numberbuff);
+    console_kprint(numberbuff);
 }
 
 
@@ -88,12 +82,6 @@ void console_kprint(const char *message) {
 //  * Returns the offset of the next character
 //  * Sets the video cursor to the returned offset
 //  */
-int print_char_disabled(char c, int col, int row, char attr){
-	unsigned char *vidmem = (unsigned char*) VIDEO_ADDRESS;
-	vidmem[2*col] = c;
-	vidmem[2*col+1] = attr;
-	return col+1;
-}
 int print_char(char c, int col, int row, char attr) {
     unsigned char *vidmem = (unsigned char*) VIDEO_ADDRESS;
     if (!attr) attr = WHITE_ON_BLACK;
@@ -117,6 +105,22 @@ int print_char(char c, int col, int row, char attr) {
         vidmem[offset+1] = attr;
         offset += 2;
     }
+
+    /* Check if the offset is over screen size and scroll */
+    if (offset >= MAX_ROWS * MAX_COLS * 2) {
+        int i;
+        for (i = 1; i < MAX_ROWS; i++) 
+            memory_copy(get_offset(0, i) + VIDEO_ADDRESS,
+                        get_offset(0, i-1) + VIDEO_ADDRESS,
+                        MAX_COLS * 2);
+
+        /* Blank last line */
+        char *last_line = get_offset(0, MAX_ROWS-1) + VIDEO_ADDRESS;
+        for (i = 0; i < MAX_COLS * 2; i++) last_line[i] = 0;
+
+        offset -= 2 * MAX_COLS;
+    }
+
     set_cursor_offset(offset);
     return offset;
 }
@@ -127,7 +131,7 @@ int get_cursor_offset() {
      * 2. Ask for low byte (data 15)
      */
 
-     return 0;
+     //return 0;
     port_byte_out(REG_SCREEN_CTRL, 14);
     int offset = port_byte_in(REG_SCREEN_DATA) << 8; /* High byte: << 8 */
     port_byte_out(REG_SCREEN_CTRL, 15);
@@ -175,6 +179,30 @@ int get_offset_col(int offset) { return (offset - (get_offset_row(offset)*2*MAX_
  	if(next_free_character > VIDEO_ADDRESS+100)
  		next_free_character = VIDEO_ADDRESS;
  }
+
+void int_to_ascii_unsafe(int n, char str[]) {
+    int i, sign;
+    if ((sign = n) < 0) n = -n;
+    i = 0;
+    do {
+        str[i++] = n % 10 + '0';
+    } while ((n /= 10) > 0); 
+
+    if (sign < 0) str[i++] = '-';
+    str[i] = '\0';
+
+    // reverse
+    char * end = &str[i-1];
+    char * start = &str[0];
+    while(start<end) {
+        char tmp = *end;
+        *end = *start;
+        *start = tmp;
+        start++; 
+        end--;
+    }
+}
+
 
 
 
