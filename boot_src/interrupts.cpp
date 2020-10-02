@@ -1,5 +1,8 @@
 #include "console.h"
 #include "types.h"
+#include "ports.h"
+
+#include "interrupts.h"
 
 /** Interrupts.cpp
  *
@@ -45,13 +48,6 @@ typedef struct {
 } __attribute__((packed)) idt_register_t;
 
 
-typedef struct {
-   uint32_t ds; /* Data segment selector */
-   uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax; /* Pushed by pusha. */
-   uint32_t int_no, err_code; /* Interrupt number and error code (if applicable) */
-   uint32_t eip, cs, eflags, useresp, ss; /* Pushed by the processor automatically */
-} isr_service_handler_parameters;
-
 /** Data
 */
 
@@ -64,6 +60,9 @@ static gate_struct s_idt[256]; // It must always be 256, its the CPU architectur
 static idt_register_t s_idt_reg;
 /* A pointer to the array of interrupt handlers.
  * Assembly instruction 'lidt' will read it */
+
+/** Ferrite OS will hold the C level handlers in this array */
+static irq_handler_func_t s_handlers[256];
 
 /** Support for messages */
 const char  *interupt_service_request_handler_exception_messages[] = {
@@ -132,12 +131,40 @@ void load_idt_registry() {
 }
 
 // Called from the ASM portion of this system, hence the extern "C"
-extern "C" void interupt_service_request_handler(isr_service_handler_parameters r) {
+extern "C" void interupt_service_request_handler(isr_irq_handler_parameters r) {
     console_kprint("received interrupt: ");
     console_kprint_int(r.int_no);
     console_kprint("\n");
     console_kprint(interupt_service_request_handler_exception_messages[r.int_no]);
     console_kprint("\n");
+}
+
+extern "C" void interupt_request_line_handler(isr_irq_handler_parameters r) {
+
+	// Clear the flag so IRQ subsystem know we are ready 
+	// to recieve another
+    if (r.int_no >= 40) {
+    	port_byte_out(0xA0, 0x20);  // follower 
+    }
+    port_byte_out(0x20, 0x20); // leader
+
+    /* Handle the interrupt in a more modular way */
+    /*if (interrupt_handlers[r.int_no] != 0) {
+        isr_t handler = interrupt_handlers[r.int_no];
+        handler(r);
+    }*/
+    console_kprint("received IRQ: ");
+    console_kprint_int(r.int_no);
+    console_kprint("\n");
+    if(r.int_no == 1) {
+	    int keycode = port_byte_in(0x60);
+
+	    console_kprint("(Keyboard) Scancode : ");
+	    console_kprint_int(keycode);
+	    console_kprint("\n");
+    }
+
+
 }
 
 extern "C" void asm_isr0();
@@ -173,46 +200,117 @@ extern "C" void asm_isr29();
 extern "C" void asm_isr30();
 extern "C" void asm_isr31();
 
-#define SET_IDT_GATE(n) set_idt_gate( n , (const void*)asm_isr##n)
+extern "C" void asm_irq0();
+extern "C" void asm_irq1();
+extern "C" void asm_irq2();
+extern "C" void asm_irq3();
+extern "C" void asm_irq4();
+extern "C" void asm_irq5();
+extern "C" void asm_irq6();
+extern "C" void asm_irq7();
+extern "C" void asm_irq8();
+extern "C" void asm_irq9();
+extern "C" void asm_irq10();
+extern "C" void asm_irq11();
+extern "C" void asm_irq12();
+extern "C" void asm_irq13();
+extern "C" void asm_irq14();
+extern "C" void asm_irq15();
+
+#define SET_IDT_GATE_ISR(n) set_idt_gate( n , (const void*)asm_isr##n)
+#define SET_IDT_GATE_IRQ(n) set_idt_gate( (32+n) , (const void*)asm_irq##n)
+
 void interrupts_isr_install() {
-	SET_IDT_GATE(0);
-	SET_IDT_GATE(1);
-	SET_IDT_GATE(2);
-	SET_IDT_GATE(3);
-	SET_IDT_GATE(4);
-	SET_IDT_GATE(5);
-	SET_IDT_GATE(6);
-	SET_IDT_GATE(7);
-	SET_IDT_GATE(8);
-	SET_IDT_GATE(9);
-	SET_IDT_GATE(10);
-	SET_IDT_GATE(11);
-	SET_IDT_GATE(12);
-	SET_IDT_GATE(13);
-	SET_IDT_GATE(14);
-	SET_IDT_GATE(15);
-	SET_IDT_GATE(16);
-	SET_IDT_GATE(17);
-	SET_IDT_GATE(18);
-	SET_IDT_GATE(19);
-	SET_IDT_GATE(20);
-	SET_IDT_GATE(21);
-	SET_IDT_GATE(22);
-	SET_IDT_GATE(23);
-	SET_IDT_GATE(24);
-	SET_IDT_GATE(25);
-	SET_IDT_GATE(26);
-	SET_IDT_GATE(27);
-	SET_IDT_GATE(28);
-	SET_IDT_GATE(29);
-	SET_IDT_GATE(30);
-	SET_IDT_GATE(31);
+	SET_IDT_GATE_ISR(0);
+	SET_IDT_GATE_ISR(1);
+	SET_IDT_GATE_ISR(2);
+	SET_IDT_GATE_ISR(3);
+	SET_IDT_GATE_ISR(4);
+	SET_IDT_GATE_ISR(5);
+	SET_IDT_GATE_ISR(6);
+	SET_IDT_GATE_ISR(7);
+	SET_IDT_GATE_ISR(8);
+	SET_IDT_GATE_ISR(9);
+	SET_IDT_GATE_ISR(10);
+	SET_IDT_GATE_ISR(11);
+	SET_IDT_GATE_ISR(12);
+	SET_IDT_GATE_ISR(13);
+	SET_IDT_GATE_ISR(14);
+	SET_IDT_GATE_ISR(15);
+	SET_IDT_GATE_ISR(16);
+	SET_IDT_GATE_ISR(17);
+	SET_IDT_GATE_ISR(18);
+	SET_IDT_GATE_ISR(19);
+	SET_IDT_GATE_ISR(20);
+	SET_IDT_GATE_ISR(21);
+	SET_IDT_GATE_ISR(22);
+	SET_IDT_GATE_ISR(23);
+	SET_IDT_GATE_ISR(24);
+	SET_IDT_GATE_ISR(25);
+	SET_IDT_GATE_ISR(26);
+	SET_IDT_GATE_ISR(27);
+	SET_IDT_GATE_ISR(28);
+	SET_IDT_GATE_ISR(29);
+	SET_IDT_GATE_ISR(30);
+	SET_IDT_GATE_ISR(31);
+
+    // Remap the PIC
+    port_byte_out(0x20, 0x11); // restart PIC1
+    port_byte_out(0xA0, 0x11); // restart PIC2
+    port_byte_out(0x21, 0x20); // PIC1 now starts at 32
+    port_byte_out(0xA1, 0x28); // PIC2 now starts at 40
+    port_byte_out(0x21, 0x04); // setup cascading
+    port_byte_out(0xA1, 0x02); // setup cascading
+    port_byte_out(0x21, 0x01); // environment
+    port_byte_out(0xA1, 0x01); // environment
+    port_byte_out(0x21, 0x01); // mask
+    port_byte_out(0xA1, 0x01); // mask
+
+    // Install the IRQs
+	SET_IDT_GATE_IRQ(0);
+	SET_IDT_GATE_IRQ(1);
+	SET_IDT_GATE_IRQ(2);
+	SET_IDT_GATE_IRQ(3);
+	SET_IDT_GATE_IRQ(4);
+	SET_IDT_GATE_IRQ(5);
+	SET_IDT_GATE_IRQ(6);
+	SET_IDT_GATE_IRQ(7);
+	SET_IDT_GATE_IRQ(8);
+	SET_IDT_GATE_IRQ(9);
+	SET_IDT_GATE_IRQ(10);
+	SET_IDT_GATE_IRQ(11);
+	SET_IDT_GATE_IRQ(12);
+	SET_IDT_GATE_IRQ(13);
+	SET_IDT_GATE_IRQ(14);
+	SET_IDT_GATE_IRQ(15);
+
 
     load_idt_registry(); 
 }
 
 void interrupts_install() {
+	// Clean out array that will hold all handlers.
+	for(int i = 0 ; i < sizeof(s_handlers)/sizeof(s_handlers[0]) ; i++)
+		s_handlers[i] = 0;
+
 	interrupts_isr_install();
 	load_idt_registry();
-	
+
+    /* Get current master PIC interrupt mask */
+    unsigned char curmask_master = port_byte_in (0x21);
+
+    ///* 0xFD is 11111101 - enables only IRQ1 (keyboard) on master pic
+    //   by clearing bit 1. bit is clear for enabled and bit is set for disabled */
+    //port_byte_out(0x21, curmask_master & 0xFD);
+
+	asm volatile("sti");
+}
+
+void register_irq_handler(int id, irq_handler_func_t h) {
+	if(id < sizeof(s_handlers)/sizeof(s_handlers[0])){
+		s_handlers[id] = h;
+	} else {
+		// Error
+	}
+
 }

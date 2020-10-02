@@ -4,6 +4,7 @@
 
 ; Defined in isr.c
 [extern interupt_service_request_handler]
+[extern interupt_request_line_handler]
 
 %macro pushaq 0
     push rax
@@ -29,7 +30,7 @@
 isr_common_stub:
     ; 1. Save CPU state
 	pushaq 
-	mov ax, ds ; Lower 16-bits of eax = ds.
+	mov rax, ds ; Lower 16-bits of eax = ds.
 	push rax ; save the data segment descriptor
 	mov ax, 0x10  ; kernel data segment descriptor
 	mov ds, ax
@@ -50,9 +51,39 @@ isr_common_stub:
 	mov fs, ax
 	mov gs, ax
 	popaq
-	add esp, 8 ; Cleans up the pushed error code and pushed ISR number
+	add rsp, 16 ; Cleans up the pushed error code and pushed ISR number
 	sti
 	iretq ; 64 bit return 
+
+irq_common_stub:
+    ; 1. Save CPU state
+    pushaq
+    mov rax, ds ; Lower 16-bits of eax = ds.
+    push rax ; save the data segment descriptor
+    mov ax, 0x10  ; kernel data segment descriptor
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    
+    ; 2. Call C handler
+    call interupt_request_line_handler
+    
+    ; 3. Restore state
+    ; (Note on 64 bit, im not sure if we actually need to do this
+    ; but most reference code suggest this is wholesome. Revisit
+    ; when we introduce processes and privelage levels)
+
+    pop rbx  ;; NOTE NOT COMMON WITH ISR. Also not pop ebx like in tutorials
+    mov ds, bx ; diff
+    mov es, bx ; diff
+    mov fs, bx ; diff
+    mov gs, bx ; diff
+    popaq
+    add rsp, 16 ; Cleans up the pushed error code and pushed ISR number
+    sti
+    iretq ; 64 bit return 
+
 	
 ; We don't get information about which interrupt was caller
 ; when the handler is run, so we will need to have a different handler
@@ -94,6 +125,28 @@ global asm_isr28
 global asm_isr29
 global asm_isr30
 global asm_isr31
+
+global asm_irq0
+global asm_irq1
+global asm_irq2
+global asm_irq3
+global asm_irq4
+global asm_irq5
+global asm_irq6
+global asm_irq7
+global asm_irq8
+global asm_irq9
+global asm_irq10
+global asm_irq11
+global asm_irq12
+global asm_irq13
+global asm_irq14
+global asm_irq15
+
+
+;
+; ISRs
+;
 
 ; 0: Divide By Zero Exception
 asm_isr0:
@@ -318,3 +371,105 @@ asm_isr31:
     push byte 0
     push byte 31
     jmp isr_common_stub
+
+
+
+
+;
+; IRQs
+;
+asm_irq0:
+    cli
+    push byte 0
+    push byte 32
+    jmp irq_common_stub
+
+asm_irq1:
+    cli
+    push byte 1
+    push byte 33
+    jmp irq_common_stub
+
+asm_irq2:
+    cli
+    push byte 2
+    push byte 34
+    jmp irq_common_stub
+
+asm_irq3:
+    cli
+    push byte 3
+    push byte 35
+    jmp irq_common_stub
+
+asm_irq4:
+    cli
+    push byte 4
+    push byte 36
+    jmp irq_common_stub
+
+asm_irq5:
+    cli
+    push byte 5
+    push byte 37
+    jmp irq_common_stub
+
+asm_irq6:
+    cli
+    push byte 6
+    push byte 38
+    jmp irq_common_stub
+
+asm_irq7:
+    cli
+    push byte 7
+    push byte 39
+    jmp irq_common_stub
+
+asm_irq8:
+    cli
+    push byte 8
+    push byte 40
+    jmp irq_common_stub
+
+asm_irq9:
+    cli
+    push byte 9
+    push byte 41
+    jmp irq_common_stub
+
+asm_irq10:
+    cli
+    push byte 10
+    push byte 42
+    jmp irq_common_stub
+
+asm_irq11:
+    cli
+    push byte 11
+    push byte 43
+    jmp irq_common_stub
+
+asm_irq12:
+    cli
+    push byte 12
+    push byte 44
+    jmp irq_common_stub
+
+asm_irq13:
+    cli
+    push byte 13
+    push byte 45
+    jmp irq_common_stub
+
+asm_irq14:
+    cli
+    push byte 14
+    push byte 46
+    jmp irq_common_stub
+
+asm_irq15:
+    cli
+    push byte 15
+    push byte 47
+    jmp irq_common_stub    
