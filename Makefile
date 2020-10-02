@@ -22,8 +22,11 @@ obj/interrupts.o: boot_src/interrupts.cpp
 obj/memory.o: boot_src/memory.cpp
 	/usr/local/x86_64elfgcc/bin/x86_64-elf-gcc  -ffreestanding -c boot_src/memory.cpp -o obj/memory.o
 
-obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o
-	/usr/local/x86_64elfgcc/bin/x86_64-elf-ld -o obj/kernel_combined.bin -Ttext 0x1000 -Tdata 0x20000 --oformat binary obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o
+obj/ports.o: boot_src/ports.cpp
+	/usr/local/x86_64elfgcc/bin/x86_64-elf-gcc  -ffreestanding -c boot_src/ports.cpp -o obj/ports.o	
+
+obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o
+	/usr/local/x86_64elfgcc/bin/x86_64-elf-ld -o obj/kernel_combined.bin -Ttext 0x1000 -Tdata 0x20000 --oformat binary obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o
 
 clean:
 	rm obj/*.bin 
