@@ -25,22 +25,21 @@ extern "C" void kernel_c_entry(void) {
 	interrupts_install();
 	volatile int b = 0;
 
+	console_kprint_at("Ferrite OS 0.0.0.0",0,1);
 
-	char * video_mem = (char*)0xb8000;
-	*video_mem = 'V';
 
-	console_kprint("Short");
 
-	console_kprint_at("Hello at 5,5",5,5);
+	console_kprint_at("Hello at 10,3\n",10,3);
 
 	console_kprint("\nTesting multi line\nSecond line");
 
 	// trigger division by zero
 	//int a = 4/b;
 
-	for(int i = 0 ; i < 100 ; i++) {
+	for(int i = 0 ; i < 10 ; i++) {
 		console_kprint("\nIteration: "); console_kprint_int(i);
 	}
+	console_kprint("\nNow try the keyboard");
 	while(true)
 		;
 }
