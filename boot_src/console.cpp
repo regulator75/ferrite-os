@@ -1,6 +1,7 @@
 
 #include "stdint.h"
 #include "memory.h"
+#include "ports.h"
 
 #define VIDEO_ADDRESS ((char*)0xb8000)
 #define MAX_ROWS 25
@@ -12,12 +13,6 @@
 #define REG_SCREEN_CTRL 0x3d4
 #define REG_SCREEN_DATA 0x3d5
 
-
-
-unsigned char port_byte_in ( uint16_t port);
-void port_byte_out (uint16_t port, unsigned char data);
-uint16_t port_word_in (uint16_t port);
-void port_word_out (uint16_t port, uint16_t data);
 
 /* Declaration of private functions */
 int get_cursor_offset();
@@ -206,28 +201,3 @@ void int_to_ascii_unsafe(int n, char str[]) {
 
 
 
-
-// // Section below from ports.c from cfenollosa os tutorial
-
-/**
- * Read a byte from the specified port
- */
-unsigned char port_byte_in (uint16_t port) {
-    unsigned char result;
-    __asm__("in %%dx, %%al" : "=a" (result) : "d" (port));
-    return result;
-}
-
-void port_byte_out (uint16_t port, unsigned char data) {
-    __asm__("out %%al, %%dx" : : "a" (data), "d" (port));
-}
-
-uint16_t port_word_in (uint16_t port) {
-    uint16_t result;
-    __asm__("in %%dx, %%ax" : "=a" (result) : "d" (port));
-    return result;
-}
-
-void port_word_out (uint16_t port, uint16_t data) {
-    __asm__("out %%ax, %%dx" : : "a" (data), "d" (port));
-}
