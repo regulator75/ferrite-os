@@ -28,6 +28,11 @@ https://libcxx.llvm.org/docs/UsingLibcxx.html
 Interrupts in 64 bit mode
 https://0xax.gitbooks.io/linux-insides/content/Interrupts/linux-interrupts-1.html
 
+http://www.uruk.org/orig-grub/mem64mb.html
+https://en.wikibooks.org/wiki/X86_Assembly/Programmable_Interrupt_Controller
+https://github.com/pdoane/osdev/blob/master/boot/loader.asm
+https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019
+
 ## Building the tools on macOS
 
 - Go to a tmp folder
