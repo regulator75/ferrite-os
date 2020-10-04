@@ -17,14 +17,25 @@
 %endmacro
 
 %macro popaq 0
-    pop rdi    
-    pop rsi    
-    pop rbp    
-    pop rbx    
-    pop rdx    
+    pop rdi
+    pop rsi
+    pop rbp
+    pop rbx
+    pop rdx
     pop rcx
     pop rax
 %endmacro
+
+;
+; This is the struct that C land sees. Corresponds
+; to what have been pushed to the stack
+;
+;typedef struct {
+;   uint64_t ds; /* Data segment selector */
+;   uint64_t rdi, rsi, rbp, rbx, rdx, rcx, rax; // pushaq
+;   uint64_t int_no, err_code; /* Interrupt number and error code (if applicable) */
+;   uint64_t eip, cs, eflags, useresp, ss; /* Pushed by the processor automatically */
+;} isr_irq_handler_parameters;
 
 ; Common ISR code
 isr_common_stub:
