@@ -21,8 +21,8 @@ int print_char(char c, int col, int row, char attr);
 int get_offset(int col, int row);
 int get_offset_row(int offset);
 int get_offset_col(int offset);
-void int_to_ascii_unsafe(int i, char * buff);
-
+void int_to_ascii_unsafe(uint64_t i, char * buff);
+void int_to_hex_unsafe(uint64_t i, char * buff);
 // /**********************************************************
 //  * Public Kernel API functions                            *
 //  **********************************************************/
@@ -57,9 +57,15 @@ void console_kprint(const char *message) {
     console_kprint_at(message, -1, -1);
 }
 
-void console_kprint_int(int i) {
+void console_kprint_uint64(uint64_t i) {
     char numberbuff[21];// "-9223372036854775806"
     int_to_ascii_unsafe(i,numberbuff);
+    console_kprint(numberbuff);
+}
+
+void console_kprint_hex(uint64_t i) {
+    char numberbuff[19];// "0x0000000000000000"
+    int_to_hex_unsafe(i,numberbuff);
     console_kprint(numberbuff);
 }
 
@@ -95,7 +101,9 @@ int print_char(char c, int col, int row, char attr) {
     if (c == '\n') {
         row = get_offset_row(offset);
         offset = get_offset(0, row+1);
-    } else {
+    }else if(c == '\t') {
+        offset = ((offset/16)+1)*16;
+    }else {
         vidmem[offset] = c;
         vidmem[offset+1] = attr;
         offset += 2;
@@ -175,7 +183,17 @@ int get_offset_col(int offset) { return (offset - (get_offset_row(offset)*2*MAX_
  		next_free_character = VIDEO_ADDRESS;
  }
 
-void int_to_ascii_unsafe(int n, char str[]) {
+
+static void reverse(char * start, char * end) {
+    while(start<end) {
+        char tmp = *end;
+        *end = *start;
+        *start = tmp;
+        start++; 
+        end--;
+    }
+}
+void int_to_ascii_unsafe(uint64_t n, char str[]) {
     int i, sign;
     if ((sign = n) < 0) n = -n;
     i = 0;
@@ -187,16 +205,26 @@ void int_to_ascii_unsafe(int n, char str[]) {
     str[i] = '\0';
 
     // reverse
-    char * end = &str[i-1];
-    char * start = &str[0];
-    while(start<end) {
-        char tmp = *end;
-        *end = *start;
-        *start = tmp;
-        start++; 
-        end--;
-    }
+    reverse(&str[0],&str[i-1]);
 }
+
+void int_to_hex_unsafe(uint64_t n, char str[]) {
+    int i;
+    i = 0;
+    str[i++]='0';
+    str[i++]='x';
+    do {
+        str[i++] = n % 16 + '0';
+        if(str[i-1] > '9' ) {
+            (str[i-1]-=('9'+1))+='A';
+        }
+    } while ((n /= 16) > 0); 
+    str[i] = '\0';
+    // reverse
+    reverse(&str[2],&str[i-1]); // 2 because of 0x
+}
+
+
 
 
 
