@@ -4,19 +4,21 @@ This operating system intends to run the V8 scripting engine on bare metal
 Inspiration for OS bringup taken from https://github.com/cfenollosa/os-tutorial
 
 ## Plan
-1. Create boot-sector and kernel that takes computer to 64 bit mode [DONE]
-2. Get V8 building with custom toolchain with no libc to identify missing symbols for memory allocation etc
-3. Create LibC to fill in the gaps
-4. Real work begins. 
+- Create boot-sector and kernel that takes computer to 64 bit mode [DONE]
+- Get basic console output working [DONE]
+- Get basic input working [Not done. Keyboard interrupts are caught and show but not properly implemented. Also no shell to send to so pointless]
+- Get Memory layout for PC [Done]
+- Implement Malloc
+- Implement C++ test program to make sure "LIBC"-equivalents are there
+- Get V8 building with custom toolchain with no libc to identify missing symbols for memory allocation etc
+- Real work begins. 
 
 ## Running
 1. Run qemu-system-x86_64 -fda obj/os.bin   (The -fda trick is apparantly a workaround as hightlighted in https://github.com/cfenollosa/os-tutorial/tree/master/07-bootsector-disk)
+2. Play with -m MEMORY to increase/decrease size of memory
 
-
-## Method for building V8
-- Script checks out V8
-- Script chekcs tool dependencies (My "Cross compilers")
-- Scripts configures build system to generate binary
+## Method for building V8 [Not tried yet]
+- This is TBD. Plan is to NOT fork V8 but rather pull a known copy, and then auto generate build scripts from that. 
 
 ## Usefull links
 https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
