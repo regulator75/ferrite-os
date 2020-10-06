@@ -111,15 +111,34 @@ static uint32_t high_32(const void * address) {
 	return (uint32_t)((((uint64_t)address) >> 32) & 0xFFFFFFFF);
 }
 
+void print_isr_irq_handler_parameters(isr_irq_handler_parameters * p) {
+	console_kprint("ds       ");console_kprint_uint64(p->ds      );console_kprint("\n");
+	console_kprint("rdi      ");console_kprint_uint64(p->rdi     );console_kprint("\n");
+	console_kprint("rsi      ");console_kprint_uint64(p->rsi     );console_kprint("\n");
+	console_kprint("rbp      ");console_kprint_uint64(p->rbp     );console_kprint("\n");
+	console_kprint("rbx      ");console_kprint_uint64(p->rbx     );console_kprint("\n");
+	console_kprint("rcx      ");console_kprint_uint64(p->rcx     );console_kprint("\n");
+	console_kprint("rax      ");console_kprint_uint64(p->rax     );console_kprint("\n");
+	console_kprint("int_no   ");console_kprint_uint64(p->int_no  );console_kprint("\n");
+	console_kprint("code     ");console_kprint_uint64(p->code    );console_kprint("\n");
+	console_kprint("eip      ");console_kprint_uint64(p->eip     );console_kprint("\n");
+	console_kprint("cs       ");console_kprint_uint64(p->cs      );console_kprint("\n");
+	console_kprint("eflags   ");console_kprint_uint64(p->eflags  );console_kprint("\n");
+	console_kprint("useresp  ");console_kprint_uint64(p->useresp );console_kprint("\n");
+	console_kprint("ss       ");console_kprint_uint64(p->ss      );console_kprint("\n");
+}
+
+
 void set_idt_gate(int n, const void * handler) {
     s_idt[n].low_offset = lowest_16(handler);
-    s_idt[n].sel = 0x08; // WHAT IS THIS? Some docs says 8 //KERNEL_CS;
+    s_idt[n].sel = 0x08; 
     s_idt[n].always0 = 0;
     s_idt[n].flags = 0x8E; 
     s_idt[n].middle_offset = secondlowest_16(handler);
 	s_idt[n].high_offset = high_32(handler); // I think this is right?
 	s_idt[n].reserved = 0; //0, because why not.    
 }
+
 
 void load_idt_registry() {
     s_idt_reg.base = (uint64_t) &s_idt;
@@ -133,10 +152,13 @@ void load_idt_registry() {
 // Called from the ASM portion of this system, hence the extern "C"
 extern "C" void interupt_service_request_handler(isr_irq_handler_parameters r) {
     console_kprint("received interrupt: ");
-    console_kprint_int(r.int_no);
+    console_kprint_uint64(r.int_no);
     console_kprint("\n");
     console_kprint(interupt_service_request_handler_exception_messages[r.int_no]);
     console_kprint("\n");
+
+
+    print_isr_irq_handler_parameters(&r);
 }
 
 extern "C" void interupt_request_line_handler(isr_irq_handler_parameters r) {
@@ -154,16 +176,16 @@ extern "C" void interupt_request_line_handler(isr_irq_handler_parameters r) {
         handler(r);
     }*/
     console_kprint("received IRQ: ");
-    console_kprint_int(r.int_no);
+    console_kprint_uint64(r.code);
     console_kprint("\n");
-    if(r.int_no == 1) {
+    if(r.code == 1) {
 	    int keycode = port_byte_in(0x60);
 
 	    console_kprint("(Keyboard) Scancode : ");
-	    console_kprint_int(keycode);
+	    console_kprint_uint64(keycode);
 	    console_kprint("\n");
     }
-
+    print_isr_irq_handler_parameters(&r);
 
 }
 
