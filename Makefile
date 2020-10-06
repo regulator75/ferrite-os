@@ -1,3 +1,7 @@
+# This is a very crude Makefile, allowing me to experiment with 
+# indivudial build options for various files. 
+# Needs a cleanup, and CC etc.
+
 os.bin: obj/boot_sector.bin obj/kernel_combined.bin
 	cat obj/boot_sector.bin obj/kernel_combined.bin > obj/os.bin
 
