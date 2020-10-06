@@ -41,12 +41,13 @@ load_kernel:
     mov bx, MSG_LOADINGKERNEL
     call print
     mov bx, KERNEL_OFFSET ; Read from disk and store in 0x1000
-    mov dh, 16
+    mov dh, 32
     mov dl, [BOOT_DRIVE]
     call disk_load
-    
     mov bx, MSG_DONE
     call print    
+    call build_memory_map
+
     ret
 
 
@@ -58,7 +59,7 @@ load_kernel:
 
 ; Data
 MSG_BOOTING: db 'Booting Ferrite OS...',0
-MSG_32BIT_FAIL: db 'Failed to enter 32 bit mode',0
+MSG_32BIT_FAIL: db 'F32',0
 MSG_32BIT: db 'Entered 32 bit mode',0
 MSG_LOADINGKERNEL: db 'Loading Kernel...',0
 MSG_DONE: db 'Done',0
@@ -69,6 +70,8 @@ BOOT_DRIVE db 0 ; It is a good idea to store it in memory because 'dl' may get o
 %include "boot_src/32bit-gdt.asm"
 %include "boot_src/32bit-print.asm"
 %include "boot_src/32bit-switch.asm"
+%include "boot_src/memory_lowlevel.asm"
+
 
 [bits 32]
 BEGIN_PM: ; after the switch we will get here
