@@ -36,6 +36,8 @@ https://github.com/pdoane/osdev/blob/master/boot/loader.asm
 https://docs.microsoft.com/en-us/cpp/build/x64-calling-convention?view=vs-2019
 https://stackoverflow.com/questions/3381755/porting-newlib-crt0
 
+https://www.embecosm.com/appnotes/ean9/ean9-howto-newlib-1.0.html [porting newlib]
+
 
 ## Building the tools on macOS
 
@@ -86,18 +88,34 @@ https://stackoverflow.com/questions/3381755/porting-newlib-crt0
 - make install-target-libgcc (May need sudo)
 
 
+#ADDING THIS TO .profile
+# For building Ferrite
+# Add path to build tools and binaries
+PATH="/usr/local/x86_64-elf/bin:$PATH"
+
+
 
 curl -O ftp://sourceware.org/pub/newlib/newlib-3.3.0.tar.gz
+../newlib-3.3.0/configure --target=x86_64-elf --prefix=/usr/local/x86_64-elf \
+CC_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-gcc \
+CXX_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-g++ \
+LD_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ld \
+AS_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-as \
+NM_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-nm \
+AR_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ar \
+RANLIB_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ranlib \
+OBJDUMP_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-objdump
 
-../newlib-3.3.0/configure --target=x86_64-elf --prefix=/usr/local/x86_64-elf
+make all
+sudo make install
 
 
 
 Note on CRT0.o
-Locate in 
 
-x86_64-myos-gcc -c strfoo.c -o strfoo.o
-x86_64-myos-as x86_64/crt0.s -o x86_64/crt0.o
+x86_64-elf-as crt0.s -o crt0.o
+sudo cp crt0.o /usr/local/x86_64-elf/x86_64-elf/lib/.
+
 x86_64-myos-ar rcs libc.a strfoo.o x86_64/crt0.o
 
 ../gcc-10.2.0/libstdc++-v3/configure --target=x86_64-elf --prefix="/usr/local/x86_64-elf" --disable-nls --disable-libssp --enable-languages=c,c++ --with-newlib=/usr/local/x86_64-elf/x86_64-elf/ --disable-libstdcxx-threads --disable-multilib --disable-hosted-libstdcxx \
@@ -110,13 +128,18 @@ AR_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ar \
 RANLIB_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ranlib \
 OBJDUMP_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-objdump
 
-
-../newlib-3.3.0/configure --target=x86_64-elf --prefix=/usr/local/x86_64-elf
-sudo make install
+make all-target-libstdc++-v3
 
 
+Add /usr/local/x86_64-elf/x86_64-elf/lib/libc.a to the LD line to get newlibs functions included.
 
 
-
-
+CC=/usr/local/x86_64-elf/bin/x86_64-elf-gcc \
+CXX=/usr/local/x86_64-elf/bin/x86_64-elf-g++ \
+LD=/usr/local/x86_64-elf/bin/x86_64-elf-ld \
+AS=/usr/local/x86_64-elf/bin/x86_64-elf-as \
+NM=/usr/local/x86_64-elf/bin/x86_64-elf-nm \
+AR=/usr/local/x86_64-elf/bin/x86_64-elf-ar \
+RANLIB=/usr/local/x86_64-elf/bin/x86_64-elf-ranlib \
+OBJDUMP=/usr/local/x86_64-elf/bin/x86_64-elf-objdump
 
