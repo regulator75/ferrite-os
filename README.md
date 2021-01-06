@@ -49,6 +49,7 @@ https://www.embecosm.com/appnotes/ean9/ean9-howto-newlib-1.0.html [porting newli
 6. Test-compile a plain C program
 7. Download and configure stdlibc++v3
 
+if building gcc fails try  cd gcc-10.2.0 ; ./contrib/download_prerequisites
 
 
 
