@@ -156,7 +156,7 @@ switch_to_longmode:
 	jmp GDT64.Code:BEGIN_64       ; Set the code segment and enter 64-bit long mode.
 
     mov ebx, MSG_SWITCHING_TO_LONGMODE_FAIL
-    call print_string_pm ; 
+    ;;;call print_string_pm ; 
 	jmp $ ; Not reached
 
 
@@ -169,12 +169,12 @@ switch_to_longmode:
 
 .NoCPUID:
 	mov ebx, MSG_NOCPUID
-    call print_string_pm 
+    ;;;call print_string_pm 
 	ret
 
 .NoLongMode:
     mov ebx, MSG_NOLONGMODE
-    call print_string_pm 
+    ;;;call print_string_pm 
 	ret
 
 

@@ -4,6 +4,7 @@
 
 GCCVER=10.2.0
 PREFIX=/usr/local/ferrite
+#CC=$(PREFIX)/bin/x86_64-elf-g++
 CC=$(PREFIX)/bin/x86_64-elf-gcc
 LD=$(PREFIX)/bin/x86_64-elf-ld
 ##GCCVER=9.2.0
@@ -82,39 +83,41 @@ tools: toolbuild/newlib-3.3.0-done toolbuild/gcc-$(GCCVER)-done-2nd toolbuild/bi
 
 
 os.bin: obj/boot_sector.bin obj/kernel_combined.bin
-	cat obj/boot_sector.bin obj/kernel_combined.bin > obj/os.bin
+	cat obj/boot_sector.bin obj/kernel_combined.bin > $@
 
 obj/boot_sector.bin: boot_src/boot_sector.asm
-	nasm -f bin boot_src/boot_sector.asm -o obj/boot_sector.bin
+	nasm -f bin $< -o $@
 
 obj/interrupts_lowlevel.o: boot_src/interrupts_lowlevel.asm
-	nasm -f elf64 boot_src/interrupts_lowlevel.asm -o obj/interrupts_lowlevel.o 
+	nasm -f elf64 $< -o $@ 
 
 obj/kernel.o: boot_src/kernel.asm
-	nasm -f elf64 boot_src/kernel.asm -o obj/kernel.o
+	nasm -f elf64 $< -o obj/kernel.o
 
 obj/kernel_cpp.o: boot_src/kernel.cpp
-	$(CC)  -ffreestanding -c boot_src/kernel.cpp -o obj/kernel_cpp.o
-
-obj/console.o: boot_src/console.cpp
-	$(CC)  -ffreestanding -c boot_src/console.cpp -o obj/console.o
-
-obj/interrupts.o: boot_src/interrupts.cpp
-	$(CC)  -ffreestanding -c boot_src/interrupts.cpp -o obj/interrupts.o
-
-obj/memory.o: boot_src/memory.cpp
-	$(CC)  -ffreestanding -c boot_src/memory.cpp -o obj/memory.o
-
-obj/ports.o: boot_src/ports.cpp
-	$(CC)  -ffreestanding -c boot_src/ports.cpp -o obj/ports.o	
-
-
-# LIBC glue
-obj/newlib_glue_syscalls.o: boot_src/newlib_glue_syscalls.c 
 	$(CC)  -ffreestanding -c $< -o $@
 
-obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o
-	$(LD) -o obj/kernel_combined.bin -Ttext 0x1000 -Tdata 0x20000 --oformat binary obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o
+obj/console.o: boot_src/console.cpp
+	$(CC)  -ffreestanding -c $< -o $@
+
+obj/interrupts.o: boot_src/interrupts.cpp
+	$(CC)  -ffreestanding -c $< -o $@
+
+obj/memory.o: boot_src/memory.cpp
+	$(CC)  -ffreestanding -c $< -o $@
+
+obj/ports.o: boot_src/ports.cpp
+	$(CC)  -ffreestanding -c $< -o $@
+
+obj/printf.o: boot_src/printf.c 
+	$(CC)  -ffreestanding -c $< -o $@
+
+# LIBC glue
+obj/newlib_glue_syscalls.o: boot_src/newlib_glue_syscalls.cpp 
+	$(CC)  -ffreestanding -c $< -o $@
+
+obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o
+	$(LD) -o obj/kernel_combined.bin -Ttext 0x10000 -Tdata 0x1B000 --oformat binary obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o
 
 clean:
 	rm obj/*.bin 

@@ -5,6 +5,7 @@
 #include "console.h"
 #include "interrupts.h"
 #include "memory.h"
+#include <stdio.h>
 
 class CppLibTesterClazz{
 public:
@@ -34,6 +35,8 @@ extern "C" void kernel_c_entry(void) {
 	console_kprint("\nTesting multi line\nSecond line");
 
 	memory_analyze_and_print();
+
+	//printf("Hello Printf\n");
 
 	console_kprint("\nNow try the keyboard");
 	while(true)

@@ -1,10 +1,10 @@
 ;kernel.asm
 
-;[org 0x1000]
+;[org 0x10000]
 [bits 32]
 kernel_main:
     mov ebx, MSG_KERNEL_RUNNING
-    call print_string_pm ; Note that this will be written at the top left corner
+    ;;;call print_string_pm ; Note that this will be written at the top left corner
 
 	mov edi, 0x9000
 
@@ -15,7 +15,7 @@ kernel_main:
 
 MSG_KERNEL_RUNNING: db 'Kernel running...',0
 
-%include "boot_src/32bit-print.asm"
+;;;%include "boot_src/32bit-print.asm"
 %include "boot_src/64bit-print.asm"
 %include "boot_src/64bit-switch.asm"
 %include "boot_src/64bit-gdt.asm"
@@ -78,4 +78,4 @@ BEGIN_64:
     hlt                           ; Halt the processor.
 
 
-times 1024-($-$$) db 0
+;times 1024-($-$$) db 0

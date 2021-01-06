@@ -1,6 +1,7 @@
 [org 0x7c00] ; This is the adress where the first instruction will be in RAM after BIOS have loaded it
 
-KERNEL_OFFSET equ 0x1000 ; The same one we used when linking the kernel
+KERNEL_OFFSET equ 0x10000 ; The same one we used when linking the kernel
+
 
 
 ; Set up the offset for all memory
@@ -40,10 +41,22 @@ mov sp, bp ; if the stack is empty then sp points to bp
 load_kernel:
     mov bx, MSG_LOADINGKERNEL
     call print
-    mov bx, KERNEL_OFFSET ; Read from disk and store in 0x1000
-    mov dh, 32
+
+    mov bx, ((KERNEL_OFFSET & 0xffff0000) >> 4)
+    mov es, bx ;; no opcode for literals
+    mov bx, (KERNEL_OFFSET & 0xffff) ; Read from disk and store in 0x10000
+
+    mov dh, 89
     mov dl, [BOOT_DRIVE]
     call disk_load
+
+;    mov bx, KERNEL_OFFSET+(48*512) ; Read from disk and store in 0x1000
+;    mov dh, 48
+;    mov dl, [BOOT_DRIVE]
+;    mov ch, 0x01
+;    call disk_load
+
+
     mov bx, MSG_DONE
     call print    
     call build_memory_map
@@ -58,13 +71,14 @@ load_kernel:
 
 
 ; Data
-MSG_BOOTING: db 'Booting Ferrite OS...',0
-MSG_32BIT_FAIL: db 'F32',0
-MSG_32BIT: db 'Entered 32 bit mode',0
-MSG_LOADINGKERNEL: db 'Loading Kernel...',0
-MSG_DONE: db 'Done',0
-MSG_DEBUG: db 'Debug',0
-BOOT_DRIVE db 0 ; It is a good idea to store it in memory because 'dl' may get overwritten
+MSG_BOOTING: db 'Fe OS...',0
+MSG_32BIT_FAIL: db '1',0
+MSG_32BIT: db '2',0
+MSG_LOADINGKERNEL: db '3',0
+MSG_DONE: db '4',0
+MSG_DEBUG: db '4',0
+;;BOOT_DRIVE db 0 ; It is a good idea to store it in memory because 'dl' may get overwritten
+BOOT_DRIVE db 0x80 ;
 
 
 %include "boot_src/32bit-gdt.asm"
@@ -76,16 +90,24 @@ BOOT_DRIVE db 0 ; It is a good idea to store it in memory because 'dl' may get o
 [bits 32]
 BEGIN_PM: ; after the switch we will get here
     mov ebx, MSG_32BIT
-    call print_string_pm ; Note that this will be written at the top left corner
+    ;;;call print_string_pm ; Note that this will be written at the top left corner
 
     call KERNEL_OFFSET
 
     mov ebx, MSG_DEBUG
-    call print_string_pm ; Note that this will be written at the top left corner
+    ;;;call print_string_pm ; Note that this will be written at the top left corner
 
     jmp $ ; Never reached
 
 
+
+%define SIZE 512             ; MBR sector size (512 bytes)
+%define BASE 0x7C00          ; Address at which BIOS will load MBR
+%define DEST 0x0600          ; Address at which MBR should be copied
+
+%define ENTRY_NUM 4          ; Number of partition entries
+%define ENTRY_SIZE 16        ; Partition table entry size
+%define DISK_ID 0x12345678   ; NT Drive Serial Number (4 bytes)
 
 
 
