@@ -4,7 +4,8 @@ memory_map equ 0x5000
 
 ; Builds the e820 Memory map
 build_memory_map:
-	
+        mov di ,0
+        mov es, di
         mov di, memory_map          ; Destination for memory map storage
         xor ebx, ebx                ; State for BIOS call, set to 0 initially
 
