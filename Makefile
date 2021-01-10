@@ -5,9 +5,11 @@
 GCCVER=10.2.0
 PREFIX=/usr/local/ferrite
 #CC=$(PREFIX)/bin/x86_64-elf-g++
-CC=$(PREFIX)/bin/x86_64-elf-gcc
+CC=$(PREFIX)/bin/x86_64-elf-gcc $(INCLUDE)
 LD=$(PREFIX)/bin/x86_64-elf-ld
 ##GCCVER=9.2.0
+
+INCLUDE=-I ./flibc/. -I ./boot_src
 
 
 #
@@ -38,7 +40,9 @@ toolbuild/gcc-$(GCCVER):
 
 toolbuild/gcc-$(GCCVER)-done-1st: toolbuild/gcc-$(GCCVER) toolbuild/binutils-2.33.1-done
 	mkdir -p toolbuild/gcc-build
-	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) --disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib --enable-newlib --without-headers --disable-shared\
+	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) \
+	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
+	--enable-newlib --without-headers --disable-shared\
 	; make all-gcc \
 	; make all-target-libgcc \
 	; sudo make install-gcc \
@@ -48,7 +52,9 @@ toolbuild/gcc-$(GCCVER)-done-1st: toolbuild/gcc-$(GCCVER) toolbuild/binutils-2.3
 
 toolbuild/gcc-$(GCCVER)-done-2nd: toolbuild/gcc-$(GCCVER)-done-1st toolbuild/newlib-3.3.0-done
 	mkdir -p toolbuild/gcc-build
-	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) --disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib --enable-newlib --disable-shared\
+	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) \
+	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
+	--enable-newlib --without-headers --disable-shared --with-headers=$(PREFIX)/x86_64-elf/include --with-libs=$(PREFIX)/x86_64-elf/lib \
 	; make all-gcc \
 	; make all-target-libgcc \
 	; sudo make install-gcc \
@@ -80,10 +86,21 @@ toolbuild/newlib-3.3.0-done: toolbuild/newlib-3.3.0 toolbuild/gcc-$(GCCVER)-done
 
 tools: toolbuild/newlib-3.3.0-done toolbuild/gcc-$(GCCVER)-done-2nd toolbuild/binutils-2.33.1-done
 
+#
+# fclib
+#
+obj/file_operations.o: flibc/file_operations.cpp 
+	$(CC)  -ffreestanding -c $< -o $@
+obj/newlib_glue_syscalls.o: flibc/newlib_glue_syscalls.cpp 
+	$(CC)  -ffreestanding -c $< -o $@
+obj/unimplemented.o: flibc/unimplemented.cpp 
+	$(CC)  -ffreestanding -c $< -o $@
 
 
-os.bin: obj/boot_sector.bin obj/kernel_combined.bin
-	cat obj/boot_sector.bin obj/kernel_combined.bin > $@
+#
+# Kernel-boot
+#
+
 
 obj/boot_sector.bin: boot_src/boot_sector.asm
 	nasm -f bin $< -o $@
@@ -112,12 +129,19 @@ obj/ports.o: boot_src/ports.cpp
 obj/printf.o: boot_src/printf.c 
 	$(CC)  -ffreestanding -c $< -o $@
 
-# LIBC glue
-obj/newlib_glue_syscalls.o: boot_src/newlib_glue_syscalls.cpp 
-	$(CC)  -ffreestanding -c $< -o $@
 
-obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o
-	$(LD) -o obj/kernel_combined.bin -Ttext 0x10000 -Tdata 0x1B000 --oformat binary obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o
+# 
+# Putting it together
+# 
+
+
+obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o obj/file_operations.o obj/newlib_glue_syscalls.o obj/unimplemented.o 
+	$(LD) $^ /usr/local/ferrite/x86_64-elf/lib/libm.a /usr/local/ferrite/x86_64-elf/lib/libc.a /usr/local/ferrite/x86_64-elf/lib/libg.a -o obj/kernel_combined.bin -Ttext 0x10000 -Tdata 0x1B000 --oformat binary 
+
+
+os.bin: obj/boot_sector.bin obj/kernel_combined.bin
+	cat obj/boot_sector.bin obj/kernel_combined.bin > $@
+
 
 clean:
 	rm obj/*.bin 
