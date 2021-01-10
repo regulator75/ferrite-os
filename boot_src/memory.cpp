@@ -97,6 +97,17 @@ void memory_clear( char * target, uint64_t size) {
 	}
 }
 
+unsigned char * memory_first_usable_memory() {
+	unsigned char * toreturn = 0;
+	int i = 0;
+	while(!toreturn && memory_region_map[i].length_or_region != 0) {
+		if(memory_region_map[i].type == 1) { // TYPE 1 is Usable RAM
+			toreturn = (unsigned char*)memory_region_map[i].base;
+		}
+	}
+	return toreturn;
+}
+
 
 
 
