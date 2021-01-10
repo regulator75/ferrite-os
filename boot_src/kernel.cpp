@@ -6,10 +6,15 @@
 #include "interrupts.h"
 #include "memory.h"
 #include <stdio.h>
+#include <stdlib.h>
+
+extern "C" void * malloc(size_t);
 
 class CppLibTesterClazz{
 public:
-	CppLibTesterClazz(int x): m_x(x) {}
+	CppLibTesterClazz(int x): m_x(x) {
+		printf("In a constructor \n");
+	}
 private:
 	int m_x;
 
@@ -36,9 +41,15 @@ extern "C" void kernel_c_entry(void) {
 
 	memory_analyze_and_print();
 
-	//printf("Hello Printf\n");
+	printf("Hello Printf\n");
 
+	CppLibTesterClazz clz(0);
+	//CppLibTesterClazz * pz = new CppLibTesterClazz(2);
+	const void * p = malloc(34);
+	
 	console_kprint("\nNow try the keyboard");
+
+
 	while(true)
 		;
 }
