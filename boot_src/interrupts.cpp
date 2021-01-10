@@ -158,7 +158,7 @@ extern "C" void interupt_service_request_handler(isr_irq_handler_parameters r) {
     console_kprint("\n");
 
 
-    print_isr_irq_handler_parameters(&r);
+    ////print_isr_irq_handler_parameters(&r);
 }
 
 extern "C" void interupt_request_line_handler(isr_irq_handler_parameters r) {
@@ -185,7 +185,7 @@ extern "C" void interupt_request_line_handler(isr_irq_handler_parameters r) {
 	    console_kprint_uint64(keycode);
 	    console_kprint("\n");
     }
-    print_isr_irq_handler_parameters(&r);
+    ////print_isr_irq_handler_parameters(&r);
 
 }
 
