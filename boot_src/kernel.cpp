@@ -44,9 +44,10 @@ extern "C" void kernel_c_entry(void) {
 	printf("Hello Printf\n");
 
 	CppLibTesterClazz clz(0);
+	CppLibTesterClazz * pcls = new CppLibTesterClazz(1);
 	//CppLibTesterClazz * pz = new CppLibTesterClazz(2);
-	const void * p = malloc(34);
-	
+	const void * p= malloc(34);
+
 	console_kprint("\nNow try the keyboard");
 
 

@@ -5,8 +5,8 @@
 GCCVER=10.2.0
 PREFIX=/usr/local/ferrite
 #CC=$(PREFIX)/bin/x86_64-elf-g++
-CC=$(PREFIX)/bin/x86_64-elf-gcc $(INCLUDE)
-LD=$(PREFIX)/bin/x86_64-elf-ld
+CC=$(PREFIX)/bin/x86_64-elf-g++ $(INCLUDE)
+LD=$(PREFIX)/bin/x86_64-elf-ld -lstdc++
 ##GCCVER=9.2.0
 
 INCLUDE=-I ./flibc/. -I ./boot_src
@@ -74,8 +74,8 @@ toolbuild/newlib-3.3.0-done: toolbuild/newlib-3.3.0 toolbuild/gcc-$(GCCVER)-done
 	CC_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc \
 	CXX_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-g++ \
 	LD_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ld \
-	AS_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-as \
-	NM_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-nm \
+	AS_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc-as \
+	NM_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc-nm \
 	AR_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ar \
 	RANLIB_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ranlib \
 	OBJDUMP_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-objdump \
@@ -83,6 +83,20 @@ toolbuild/newlib-3.3.0-done: toolbuild/newlib-3.3.0 toolbuild/gcc-$(GCCVER)-done
 	; sudo make install 
 
 	touch toolbuild/newlib-3.3.0-done
+
+toolbuild/libstdcpp-done: toolbuild/gcc-$(GCCVER)-done-2nd
+	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) \
+	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
+	--enable-newlib --without-headers --disable-shared --with-headers=$(PREFIX)/x86_64-elf/include --with-libs=$(PREFIX)/x86_64-elf/lib  --disable-libaquadmath \
+	CC_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc \
+	CXX_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-g++ \
+	LD_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ld \
+	AS_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-as \
+	NM_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-nm \
+	AR_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ar \
+	RANLIB_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ranlib \
+	OBJDUMP_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-objdump
+
 
 tools: toolbuild/newlib-3.3.0-done toolbuild/gcc-$(GCCVER)-done-2nd toolbuild/binutils-2.33.1-done
 
