@@ -2,65 +2,75 @@
 # indivudial build options for various files. 
 # Needs a cleanup, and CC etc.
 
-GCCVER=10.2.0
-PREFIX=/usr/local/ferrite
-#CC=$(PREFIX)/bin/x86_64-elf-g++
-CC=$(PREFIX)/bin/x86_64-elf-g++ $(INCLUDE)
-LD=$(PREFIX)/bin/x86_64-elf-ld -lstdc++
-##GCCVER=9.2.0
+TARGET_TRIPLE=x86_64-pc-none-elf
+LLVM_TOOLS = /usr/local/llvm-11.0.1
+LLVM_LIBS = /usr/local/ferrite-llvm
 
-INCLUDE=-I ./flibc/. -I ./boot_src
+CC = $(LLVM_TOOLS)/bin/clang
+CXX = $(LLVM_TOOLS)/bin/clang++
+LD=$(LLVM_TOOLS)/bin/ld.lld
+
+CCFLAGS = -g -fno-unique-section-names
+
+
+LLVMDIR = $(LLVM_TOOLS)/bin
+#CC=$(LLVMDIR)/clang $(INCLUDE) --target=x86_64-pc-none-elf -stdlib=libc++
+LLVMHOSTTOOLS=/usr/local/llvm-11.0.1
+
+
+
+
+INCLUDE=-I ./flibc/. -I ./boot_src -I /usr/local/ferrite-llvm/include -I /usr/local/ferrite-llvm/x86_64-elf/include/
+
 
 
 #
-# BINUTILS
+# Build clang used to build libraries. This is not about cross-compilation at all. 
 #
-toolbuild/binutils-2.33.1:
+toolbuild/llvm-11.0.1:
 	mkdir -p toolbuild 
-	cd toolbuild ; curl -O https://ftp.gnu.org/gnu/binutils/binutils-2.33.1.tar.gz \
-	; tar xf binutils-2.33.1.tar.gz
+	cd toolbuild ; git clone https://github.com/llvm/llvm-project.git ; cd llvm-project ; git checkout llvmorg-11.0.1
+	mv toolbuild/llvm-project toolbuild/llvm-11.0.1
+
+toolbuild/llvm-11.0.1-host:
+	mkdir -p toolbuild/llvm-11.0.1-host
+	cd toolbuild/llvm-11.0.1-host ; \
+		cmake -G "Unix Makefiles" \
+		-DLLVM_ENABLE_PROJECTS="clang;lld" \
+		-DLLVM_DEFAULT_TARGET_TRIPLE=$(TARGET_TRIPLE) \
+		-DCMAKE_INSTALL_PREFIX=$(LLVMHOSTTOOLS) \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DLVM_INSTALL_BINUTILS_SYMLINKS=True \
+		../llvm-11.0.1/llvm \
+	; make -j 4 \
+	; make install
 
 
-toolbuild/binutils-2.33.1-done: toolbuild/binutils-2.33.1
-	mkdir -p toolbuild/binutils-build
-	cd toolbuild/binutils-build ; ../binutils-2.33.1/configure --target=x86_64-elf --prefix=$(PREFIX) --enable-interwork --disable-multilib --disable-nls --disable-werror  \
-	; make all \
-	; sudo make install
+toolbuild/ferritelibs-build:
+	mkdir -p toolbuild/ferritelibs-build
+	cd toolbuild/ferritelibs-build \
+	; cmake -DCMAKE_C_COMPILER=$(CC) \
+		-DCMAKE_CXX_COMPILER=$(CXX) \
+		-DCMAKE_LINKER=$(LD) \
+		-DLLVM_ENABLE_PROJECTS="libcxx;libcxxabi" \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DCMAKE_CROSSCOMPILING=True \
+		-DCMAKE_INSTALL_PREFIX=$(LLVM_LIBS) \
+		-DCMAKE_CXX_FLAGS="-target $(TARGET_TRIPLE)" \
+		../llvm-11.0.1/llvm
 
-	touch toolbuild/binutils-2.33.1-done
+#$ git clone https://github.com/llvm/llvm-project.git
+#$ cd llvm-project
+#$ mkdir build && cd build
+#$ cmake -DCMAKE_C_COMPILER=clang \
+#        -DCMAKE_CXX_COMPILER=clang++ \
+#        -DLLVM_ENABLE_PROJECTS="libcxx;libcxxabi" \
+# /       ../llvm
+#$ make # Build
+#$ make check-cxx # Test
+#$ make install-cxx install-cxxabi # Install
 
-#
-# GCC
-#
 
-toolbuild/gcc-$(GCCVER):
-	mkdir -p toolbuild 
-	cd toolbuild ; curl -O https://ftp.gnu.org/gnu/gcc/gcc-$(GCCVER)/gcc-$(GCCVER).tar.gz \
-	; tar xf gcc-$(GCCVER).tar.gz
-
-toolbuild/gcc-$(GCCVER)-done-1st: toolbuild/gcc-$(GCCVER) toolbuild/binutils-2.33.1-done
-	mkdir -p toolbuild/gcc-build
-	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) \
-	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
-	--enable-newlib --without-headers --disable-shared\
-	; make all-gcc \
-	; make all-target-libgcc \
-	; sudo make install-gcc \
-	; sudo make install-target-libgcc
-
-	touch toolbuild/gcc-$(GCCVER)-done-1st
-
-toolbuild/gcc-$(GCCVER)-done-2nd: toolbuild/gcc-$(GCCVER)-done-1st toolbuild/newlib-3.3.0-done
-	mkdir -p toolbuild/gcc-build
-	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) \
-	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
-	--enable-newlib --without-headers --disable-shared --with-headers=$(PREFIX)/x86_64-elf/include --with-libs=$(PREFIX)/x86_64-elf/lib \
-	; make all-gcc \
-	; make all-target-libgcc \
-	; sudo make install-gcc \
-	; sudo make install-target-libgcc
-
-	touch toolbuild/gcc-$(GCCVER)-done-2nd
 #
 # NEWLIB
 #
@@ -68,47 +78,46 @@ toolbuild/newlib-3.3.0:
 	mkdir -p toolbuild 
 	cd toolbuild ; curl -O ftp://sourceware.org/pub/newlib/newlib-3.3.0.tar.gz ; tar xf newlib-3.3.0.tar.gz
 
-toolbuild/newlib-3.3.0-done: toolbuild/newlib-3.3.0 toolbuild/gcc-$(GCCVER)-done-1st toolbuild/binutils-2.33.1-done
+#	CXX_FOR_TARGET=$(LLVMDIR)/clang++ \
+
+
+toolbuild/newlib-clang-3.3.0-done: toolbuild/newlib-3.3.0 toolbuild/gcc-$(GCCVER)-done-1st toolbuild/binutils-2.33.1-done
 	mkdir -p toolbuild/newlib-build
-	cd toolbuild/newlib-build ;	../newlib-3.3.0/configure --target=x86_64-elf --prefix=$(PREFIX) \
-	CC_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc \
-	CXX_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-g++ \
-	LD_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ld \
-	AS_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc-as \
-	NM_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc-nm \
-	AR_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ar \
-	RANLIB_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ranlib \
-	OBJDUMP_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-objdump \
-	; make all \
-	; sudo make install 
+	cd toolbuild/newlib-build ;	../newlib-3.3.0/configure --target=x86_64-elf --prefix=$(LLVM_PREFIX)/newlib \
+	CC_FOR_TARGET=$(LLVMDIR)/clang \
+	LD_FOR_TARGET=$(LLVMDIR)/ld64.lld  \
+	AS_FOR_TARGET=$(LLVMDIR)/llvm-as \
+	NM_FOR_TARGET=$(LLVMDIR)/llvm-nm \
+	AR_FOR_TARGET=$(LLVMDIR)/llvm-ar \
+	CFLAGS_FOR_TARGET="--target=x86_64-pc-none-elf" \
+	RANLIB_FOR_TARGET=$(LLVMDIR)/llvm-ranlib \
+	OBJDUMP_FOR_TARGET=$(LLVMDIR)/llvm-objdump \
+	; make all
 
-	touch toolbuild/newlib-3.3.0-done
-
-toolbuild/libstdcpp-done: toolbuild/gcc-$(GCCVER)-done-2nd
-	cd toolbuild/gcc-build ; ../gcc-$(GCCVER)/configure --target=x86_64-elf --prefix=$(PREFIX) \
-	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
-	--enable-newlib --without-headers --disable-shared --with-headers=$(PREFIX)/x86_64-elf/include --with-libs=$(PREFIX)/x86_64-elf/lib  --disable-libaquadmath \
-	CC_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-gcc \
-	CXX_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-g++ \
-	LD_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ld \
-	AS_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-as \
-	NM_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-nm \
-	AR_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ar \
-	RANLIB_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-ranlib \
-	OBJDUMP_FOR_TARGET=$(PREFIX)/bin/x86_64-elf-objdump
+	touch toolbuild/newlib-clang-3.3.0-done
 
 
-tools: toolbuild/newlib-3.3.0-done toolbuild/gcc-$(GCCVER)-done-2nd toolbuild/binutils-2.33.1-done
+#toolbuild/
+#cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DLLVM_BUILD_DOCS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/ferrite-llvm -DCMAKE_CROSSCOMPILING=True -DLLVM_ENABLE_PROJECTS="libcxx;libcxxabi;clang;lld" -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-pc-none-eabi -DLLVM_TARGET_ARCH=X86 -DLLVM_TARGETS_TO_BUILD=X86 ../llvm-project-11.0.0/llvm
+
+
+
+#mkdir build-newlib-llvm
+#cd build-newlib-llvm
+#export AS_FOR_TARGET=/home/olivier/Toolchains/gcc-arm-none-eabi-4_9-2014q4/bin/arm-none-eabi-as
+#export CC_FOR_TARGET=/usr/bin/clang-3.6
+#export CFLAGS_FOR_TARGET="-target arm-none-eabi"
+
 
 #
 # fclib
 #
 obj/file_operations.o: flibc/file_operations.cpp 
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 obj/newlib_glue_syscalls.o: flibc/newlib_glue_syscalls.cpp 
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 obj/unimplemented.o: flibc/unimplemented.cpp 
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 
 
 #
@@ -126,35 +135,41 @@ obj/kernel.o: boot_src/kernel.asm
 	nasm -f elf64 $< -o obj/kernel.o
 
 obj/kernel_cpp.o: boot_src/kernel.cpp
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 
 obj/console.o: boot_src/console.cpp
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 
 obj/interrupts.o: boot_src/interrupts.cpp
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 
 obj/memory.o: boot_src/memory.cpp
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 
 obj/ports.o: boot_src/ports.cpp
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 
 obj/printf.o: boot_src/printf.c 
-	$(CC)  -ffreestanding -c $< -o $@
+	$(CC) $(CCFLAGS) $(INCLUDE) --target=x86_64-pc-none-elf -ffreestanding -c $< -o $@
 
 
+obj/zeros.0:
+	dd if=/dev/zero of=$@ bs=1000000 count=1
 # 
 # Putting it together
 # 
 
+#	-Ttext 0x10000 \
+#	-Tdata 0x1B000 
 
 obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o obj/file_operations.o obj/newlib_glue_syscalls.o obj/unimplemented.o 
-	$(LD) $^ /usr/local/ferrite/x86_64-elf/lib/libm.a /usr/local/ferrite/x86_64-elf/lib/libc.a /usr/local/ferrite/x86_64-elf/lib/libg.a -o obj/kernel_combined.bin -Ttext 0x10000 -Tdata 0x1B000 --oformat binary 
+	$(LD) -v $^ /usr/local/ferrite/x86_64-elf/lib/libm.a /usr/local/ferrite/x86_64-elf/lib/libc.a /usr/local/ferrite/x86_64-elf/lib/libg.a -o obj/kernel_combined.bin \
+	-Tlinker_map.map \
+	--oformat binary 
 
 
-os.bin: obj/boot_sector.bin obj/kernel_combined.bin
-	cat obj/boot_sector.bin obj/kernel_combined.bin > $@
+os.bin: obj/zeros.0 obj/boot_sector.bin obj/kernel_combined.bin
+	cat obj/boot_sector.bin obj/kernel_combined.bin obj/zeros.0 > $@
 
 
 clean:

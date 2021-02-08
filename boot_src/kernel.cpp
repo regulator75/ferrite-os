@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C" void * malloc(size_t);
+extern "C"  void * __attribute__((nothrow)) malloc(size_t);
 
 class CppLibTesterClazz{
 public:
@@ -41,15 +41,18 @@ extern "C" void kernel_c_entry(void) {
 
 	memory_analyze_and_print();
 
-	printf("Hello Printf\n");
+	// This seems broken at the moment
+	//printf("Hello Printf\n");
 
-	CppLibTesterClazz clz(0);
-	CppLibTesterClazz * pcls = new CppLibTesterClazz(1);
+//	CppLibTesterClazz clz(0);
+//	CppLibTesterClazz * pcls = new CppLibTesterClazz(1);
 	//CppLibTesterClazz * pz = new CppLibTesterClazz(2);
-	const void * p= malloc(34);
+
+	//void * p= malloc(34);
 
 	console_kprint("\nNow try the keyboard");
 
+	//free(p);
 
 	while(true)
 		;
