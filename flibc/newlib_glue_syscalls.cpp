@@ -16,7 +16,7 @@
 
 const static int DEFAULT_PID=123;
 
-extern "C" void _exit(int status) { NOT_IMPLEMENTED(); } ;
+extern "C" void _exit(int status) { NOT_IMPLEMENTED(); while(1);} ;
 
 
 extern "C" int execve(const char *__path, char * const __argv[], char * const __envp[]) 
