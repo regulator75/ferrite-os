@@ -50,11 +50,13 @@ load_kernel:
     mov dl, [BOOT_DRIVE]
     call disk_load
 
-;    mov bx, KERNEL_OFFSET+(48*512) ; Read from disk and store in 0x1000
-;    mov dh, 48
-;    mov dl, [BOOT_DRIVE]
-;    mov ch, 0x01
-;    call disk_load
+    ;mov bx, (((KERNEL_OFFSET+(63*512)) & 0xffff0000) >> 4)
+    ;mov es, bx ;; no opcode for literals
+    ;mov bx, ((KERNEL_OFFSET+(63*512)) & 0xffff) ; Read from disk and store in 0x10000+whatever we read last.
+    ;mov cl, 65 ; start reading sector 65, above here we read 63 sectors, starting with #2
+    ;mov dh, 63
+    ;mov dl, [BOOT_DRIVE]
+    ;call disk_load
 
 
     mov bx, MSG_DONE
