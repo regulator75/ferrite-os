@@ -15,6 +15,12 @@ SECTIONS
         *(.rodata*)
     } > ram
 
+    .data :
+    {
+        *(.data*);
+        *(.eh_frame);
+    } > ram
+
     /* .bss section which is used for uninitialized data */
     .bss (NOLOAD) :
     {
@@ -22,11 +28,7 @@ SECTIONS
         *(COMMON)
     } > ram
 
-    .data :
-    {
-        *(.data*);
-        *(.eh_frame);
-    } > ram
+
 
 /*    stack section
     .stack (NOLOAD):
