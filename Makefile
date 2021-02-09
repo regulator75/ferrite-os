@@ -10,6 +10,9 @@ CC = $(LLVM_TOOLS)/bin/clang
 CXX = $(LLVM_TOOLS)/bin/clang++
 LD=$(LLVM_TOOLS)/bin/ld.lld
 
+GCCPREFIX = /usr/local/ferrite
+GCCTARGET = x86_64-elf
+
 CCFLAGS = -g -fno-unique-section-names
 
 
@@ -32,7 +35,7 @@ toolbuild/llvm-11.0.1:
 	cd toolbuild ; git clone https://github.com/llvm/llvm-project.git ; cd llvm-project ; git checkout llvmorg-11.0.1
 	mv toolbuild/llvm-project toolbuild/llvm-11.0.1
 
-toolbuild/llvm-11.0.1-host:
+toolbuild/llvm-11.0.1-host-:
 	mkdir -p toolbuild/llvm-11.0.1-host
 	cd toolbuild/llvm-11.0.1-host ; \
 		cmake -G "Unix Makefiles" \
@@ -40,24 +43,32 @@ toolbuild/llvm-11.0.1-host:
 		-DLLVM_DEFAULT_TARGET_TRIPLE=$(TARGET_TRIPLE) \
 		-DCMAKE_INSTALL_PREFIX=$(LLVMHOSTTOOLS) \
 		-DCMAKE_BUILD_TYPE=Release \
-		-DLVM_INSTALL_BINUTILS_SYMLINKS=True \
+		-DLLVM_INSTALL_BINUTILS_SYMLINKS=True \
 		../llvm-11.0.1/llvm \
-	; make -j 4 \
-	; make install
+	; make -j 4
+	#make install
 
 
-toolbuild/ferritelibs-build:
+toolbuild/ferritelibs-build-:
 	mkdir -p toolbuild/ferritelibs-build
 	cd toolbuild/ferritelibs-build \
 	; cmake -DCMAKE_C_COMPILER=$(CC) \
 		-DCMAKE_CXX_COMPILER=$(CXX) \
 		-DCMAKE_LINKER=$(LD) \
-		-DLLVM_ENABLE_PROJECTS="libcxx;libcxxabi" \
+		-DLLVM_TARGET_ARCH=x86_64 \
+		-DLLVM_TARGETS_TO_BUILD=x86_64 \
+		-DLLVM_ENABLE_PROJECTS="compiler-rt;libcxx;libcxxabi" \
 		-DCMAKE_BUILD_TYPE=Release \
 		-DCMAKE_CROSSCOMPILING=True \
 		-DCMAKE_INSTALL_PREFIX=$(LLVM_LIBS) \
 		-DCMAKE_CXX_FLAGS="-target $(TARGET_TRIPLE)" \
+		-DLD=/usr/local/llvm-11.0.1/bin/ld64.lld \
 		../llvm-11.0.1/llvm
+
+toolbuild/makelinks:
+	sudo ln -s $(GCCPREFIX)/$(GCCTARGET)-gcc $(LLVM_TOOLS)/bin/gcc
+	sudo ln -s $(GCCPREFIX)/$(GCCTARGET)-ld $(LLVM_TOOLS)/bin/ld
+
 
 #$ git clone https://github.com/llvm/llvm-project.git
 #$ cd llvm-project
