@@ -29,3 +29,4 @@ _start:
 	movl %eax, %edi
 	call exit
 .size _start, . - _start
+
