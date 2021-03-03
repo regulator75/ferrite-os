@@ -25,3 +25,9 @@ extern "C" int link(const char *__path1, const char *__path2) {return 0;};;
 extern "C" off_t lseek(int __fildes, off_t __offset, int __whence) {return 0;};;
 extern "C" int open(const char *name, int flags, ...) {return 0;};;
 extern "C" int read(int __fd, void *__buf, size_t __nbyte) {return 0;};;
+
+
+
+int fprintf ( FILE * stream, const char * format, ... ) {
+	printf("Something reported to fprintf: %s", format);
+}
