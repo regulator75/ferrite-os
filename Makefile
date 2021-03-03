@@ -23,10 +23,11 @@ GCC_PREFIX=/usr/local/ferrite
 GCC_TARGET = x86_64-elf
 GCC_VER=10.2.0
 GCC_CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc 
-GCC_LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld -lstdc++ -L$(GCC_PREFIX)/$(GCC_TARGET)/lib
+GCC_LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld -L$(GCC_PREFIX)/$(GCC_TARGET)/lib
 GCC_INCLUDE=-I ./flibc/. -I ./boot_src -I /usr/local/ferrite/include -I /usr/local/ferrite/$(GCC_TARGET)/include/
+GCC_CCFLAGS = -ffreestanding 
 
-GCC_CCFLAGS = -ffreestanding -fno-unwind-tables -fno-asynchronous-unwind-tables
+GDB_VER=10.1
 
 #CC = $(LLVM_TOOLS)/bin/clang
 #CXX = $(LLVM_TOOLS)/bin/clang++
@@ -95,6 +96,10 @@ toolbuild/libunwind-11.0.0-done:
 #DLIBUNWIND_GCC_TOOLCHAIN=/usr/local/ferrite/x86_64-elf/bin/ \
 # 	-DLIBUNWIND_TARGET_TRIPLE=$(GCC_TARGET)
 
+
+
+
+#
 # GCC
 #
 
@@ -133,6 +138,26 @@ toolbuild/gcc-$(GCC_VER)-done-2nd: toolbuild/gcc-$(GCC_VER)-done-1st
 
 	touch toolbuild/gcc-$(GCC_VER)-done-2nd
 
+
+#
+# GDB
+#
+toolbuild/gdb-$(GDB_VER):
+	mkdir -p toolbuild 
+	cd toolbuild ; curl -O http://ftp.gnu.org/gnu/gdb/gdb-$(GDB_VER).tar.xz \
+	; tar xf gdb-$(GDB_VER).tar.xz
+
+toolbuild/gdb-done: toolbuild/gdb-$(GDB_VER)
+	mkdir -p toolbuild/gdb-build
+	cd toolbuild/gdb-build ; ../gdb-$(GDB_VER)/configure \
+	--target=$(GCC_TARGET) \
+	--prefix=$(GCC_PREFIX) \
+	--with-python=/usr/bin/python3 \
+	--host=x86_64-linux-gnu \
+	make \
+	make install
+
+	touch toolbuild/gdb-done
 
 #
 # Build clang used to build libraries. This is not about cross-compilation at all. 
@@ -230,11 +255,11 @@ toolbuild/newlib-3.3.0-done: toolbuild/newlib-3.3.0 toolbuild/gcc-$(GCC_VER)-don
 	; sudo make install 
 
 	$(GCC_PREFIX)/bin/$(GCC_TARGET)-as crt0.s -o obj/crt0.o
-	$(GCC_PREFIX)/bin/$(GCC_TARGET)-as crti.s -o obj/crti.o
 	sudo cp obj/crt0.o $(GCC_PREFIX)/$(GCC_TARGET)/lib/
-	sudo cp obj/crts.o $(GCC_PREFIX)/$(GCC_TARGET)/lib/
 
 	touch toolbuild/newlib-3.3.0-done
+
+
 
 #toolbuild/
 #cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DLLVM_BUILD_DOCS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/ferrite-llvm -DCMAKE_CROSSCOMPILING=True -DLLVM_ENABLE_PROJECTS="libcxx;libcxxabi;clang;lld" -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-pc-none-eabi -DLLVM_TARGET_ARCH=X86 -DLLVM_TARGETS_TO_BUILD=X86 ../llvm-project-11.0.0/llvm
@@ -274,6 +299,9 @@ obj/newlib_glue_syscalls.o: flibc/newlib_glue_syscalls.cpp
 	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
 obj/unimplemented.o: flibc/unimplemented.cpp 
 	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
+obj/file_handles.o: flibc/file_handles.c
+	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
+
 
 
 #
@@ -308,7 +336,6 @@ obj/ports.o: boot_src/ports.cpp
 obj/printf.o: boot_src/printf.c 
 	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
 
-
 obj/zeros.0:
 	dd if=/dev/zero of=$@ bs=1000000 count=1
 # 
@@ -318,20 +345,47 @@ obj/zeros.0:
 #	-Ttext 0x10000 \
 #	-Tdata 0x1B000 
 
-obj/kernel_combined.bin: obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o obj/file_operations.o obj/newlib_glue_syscalls.o obj/unimplemented.o
+obj/kernel_combined.bin: obj/file_handles.o obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o obj/file_operations.o obj/newlib_glue_syscalls.o obj/unimplemented.o
 	$(LD) --verbose -v $^ \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libsupc++.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libunwind.a \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libstdc++.a  \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libnosys.a \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libm.a \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libc.a \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libg.a \
-	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libucontext.a  \
-	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libunwind.a \
 	-o obj/kernel_combined.bin \
 	-Tlinker_map.map \
-	--oformat binary 
+	--oformat binary \
+	--eh-frame-hdr
 
+## DEBUGGING ONLY, identical to above exceot no --oformat binary
+obj/kernel_combined.elf: obj/file_handles.o obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o obj/file_operations.o obj/newlib_glue_syscalls.o obj/unimplemented.o
+	$(LD) --verbose -v $^ \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libsupc++.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libunwind.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libstdc++.a  \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libnosys.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libm.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libc.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libg.a \
+	-o obj/kernel_combined.elf \
+	-Tlinker_map.map \
+	--eh-frame-hdr
+
+os.elf: obj/kernel_combined.elf
+	cp $< $@
+
+
+debug: os.elf
+	qemu-system-x86_64 -s -S -hda os.bin &
+	 $(GCC_PREFIX)/bin/$(GCC_TARGET)-gdb -ex "target remote localhost:1234" -ex "symbol-file os.elf"
+
+run: os.bin
+	qemu-system-x86_64 -hda os.bin
+
+#-lstdc++
+#	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libucontext.a  \
 
 os.bin: obj/zeros.0 obj/boot_sector.bin obj/kernel_combined.bin
 	cat obj/boot_sector.bin obj/kernel_combined.bin obj/zeros.0 > $@
