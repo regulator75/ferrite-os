@@ -21,6 +21,23 @@ SECTIONS
         *(.eh_frame);
     } > ram
 
+    .gcc_except_table : { *(.gcc_except_table) *(.gcc_except_table.*) } >ram
+
+    .eh_frame_hdr ALIGN(0x8): 
+    { 
+        __eh_frame_hdr_start = .;
+        *(.eh_frame_hdr)
+        __eh_frame_hdr_end = .;
+    } > ram
+
+    .eh_frame ALIGN(0x8):
+    { 
+        PROVIDE (__eh_frame_start = .);
+        KEEP(*(.eh_frame))
+        PROVIDE (__eh_frame_end = .);
+        LONG (0);
+    } > ram
+
     /* .bss section which is used for uninitialized data */
     .bss (NOLOAD) :
     {
