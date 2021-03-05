@@ -1,26 +1,37 @@
 # ferrite-os
-This operating system intends to run the V8 scripting engine on bare metal
+This operating system intends to run the V8 scripting engine on bare metal.
+
+This is totally a research project at this stage, still focusing on getting a C++17 toolchain working for bare metal targets.
+
+This project contains a total of three different attempts
+ - GCC using regular BIOS boot, including a C++ cross compiler (furthest along)
+ - LLVM using regular BIOS boot, I could not get the C++ libraries cross compiiled
+ - GCC using UEFI boot, the newest attempt and is just in its infancy.
+
+
+## BIOS booting
 
 Inspiration for OS bringup taken from https://github.com/cfenollosa/os-tutorial
 
-## Plan
+
+
+
+### Plan
 - Create boot-sector and kernel that takes computer to 64 bit mode [DONE]
 - Get basic console output working [DONE]
 - Get basic input working [Not done. Keyboard interrupts are caught and show but not properly implemented. Also no shell to send to so pointless]
 - Get Memory layout for PC [Done]
-- Implement Malloc
+- Implement Malloc [Done-ish]
 - Implement C++ test program to make sure "LIBC"-equivalents are there
 - Get V8 building with custom toolchain with no libc to identify missing symbols for memory allocation etc
 - Real work begins. 
 
-## Running
-1. Run qemu-system-x86_64 -fda obj/os.bin   (The -fda trick is apparantly a workaround as hightlighted in https://github.com/cfenollosa/os-tutorial/tree/master/07-bootsector-disk)
+### Running
+1. Run qemu-system-x86_64 -hda os.bin 
 2. Play with -m MEMORY to increase/decrease size of memory
 
-## Method for building V8 [Not tried yet]
-- This is TBD. Plan is to NOT fork V8 but rather pull a known copy, and then auto generate build scripts from that. 
 
-## Usefull links
+### Usefull links
 https://gitlab.com/noencoding/OS-X-Chromium-with-proprietary-codecs/wikis/List-of-all-gn-arguments-for-Chromium-build
 
 https://blog.scaleprocess.net/building-v8-on-arch-linux/
@@ -39,108 +50,56 @@ https://stackoverflow.com/questions/3381755/porting-newlib-crt0
 https://www.embecosm.com/appnotes/ean9/ean9-howto-newlib-1.0.html [porting newlib]
 
 
-## Building the tools on macOS
+## Tools (GCC)
 
-1. Download and build GCC
-2. Download and build binutils
-3. Download and build newlib
-4. Re-build GCC
-5. compile crt0.s, place O file in 
-6. Test-compile a plain C program
-7. Download and configure stdlibc++v3
+### Building the tools on macOS
 
-if building gcc fails try  cd gcc-10.2.0 ; ./contrib/download_prerequisites
+Just dont. Several self-checks in the tool chains seems to assume you are building for native. If you have luck let me know.
 
+### Building the tools on Ubuntu
 
+All tool downloads and building is in the make file.
+One by one make each -done target
+ 
+Binutils is currently at 2.33 and needs upgrde
 
-- Build a native to native GCC so you are not stuck with the xcode toolchain.
-- Download GCC
-- enter GCC folder
-- Run sh ./contrib/download_prerequisites. Ignore the warnings if you get them about host. you can make sure the files are there by ls *.bz2, and you will see 3 files.
-- cd..
-- Create and enter build folder
-- ../gcc-10.2.0/configure --prefix=/usr/local/gcc-10.2.0/bin --enable-languages=c,c++ --disable-multilib --with-sysroot=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk
-- make -j 8
+If building gcc fails try  
+cd gcc-10.2.0 ; ./contrib/download_prerequisites
+The console output is not great, it may look like it failed to download, check manually.
 
+If you have problems with building GCC, make sure you have python installed. 
+sudo apt-get install python3-dev 
+sudo apt install python3.8-distutils (match 3.8 to your /usr/bin/python3 version)
 
-
-- Set the path so that these tools are picked up instead.
-
-- export PATH=/usr/local/macos-gcc/bin:$PATH
-
-- Go to a tmp folder
-- curl -O https://ftp.gnu.org/gnu/binutils/binutils-2.33.1.tar.gz
-- tar xf binutils-2.33.1.tar.gz 
-- mkdir binutils-build
-- cd binutils-build
-- ../binutils-2.33.1/configure --target=x86_64-elf  --enable-interwork --disable-multilib --disable-nls --disable-werror --prefix=/usr/local/x86_64-elf
-- make all
-- sudo make install
-
-
-- curl -O https://ftp.gnu.org/gnu/gcc/gcc-9.2.0/gcc-9.2.0.tar.gz
-- tar xf gcc-9.2.0.tar.gz
-- mkdir gcc-build
-- cd gcc-build
-- ../gcc-9.2.0/configure --target=x86_64-elf --prefix="/usr/local/x86_64-elf" --disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib --enable-newlib
-- make all-gcc 
-- make all-target-libgcc 
-- make install-gcc  (May need sudo)
-- make install-target-libgcc (May need sudo)
-
-
-#ADDING THIS TO .profile
-# For building Ferrite
-# Add path to build tools and binaries
-PATH="/usr/local/x86_64-elf/bin:$PATH"
+Needed clean build and install: sudo apt-get install texinfo
 
 
 
-curl -O ftp://sourceware.org/pub/newlib/newlib-3.3.0.tar.gz
-../newlib-3.3.0/configure --target=x86_64-elf --prefix=/usr/local/x86_64-elf \
-CC_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-gcc \
-CXX_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-g++ \
-LD_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ld \
-AS_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-as \
-NM_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-nm \
-AR_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ar \
-RANLIB_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ranlib \
-OBJDUMP_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-objdump
-
-make all
-sudo make install
-
-
-
-Note on CRT0.o
+### CRT0.o
+Currently does not initialize .bss etc properly. (no call to init)
 
 x86_64-elf-as crt0.s -o crt0.o
 sudo cp crt0.o /usr/local/x86_64-elf/x86_64-elf/lib/.
 
-x86_64-myos-ar rcs libc.a strfoo.o x86_64/crt0.o
 
-../gcc-10.2.0/libstdc++-v3/configure --target=x86_64-elf --prefix="/usr/local/x86_64-elf" --disable-nls --disable-libssp --enable-languages=c,c++ --with-newlib=/usr/local/x86_64-elf/x86_64-elf/ --disable-libstdcxx-threads --disable-multilib --disable-hosted-libstdcxx \
-CC_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-gcc \
-CXX_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-g++ \
-LD_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ld \
-AS_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-as \
-NM_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-nm \
-AR_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ar \
-RANLIB_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-ranlib \
-OBJDUMP_FOR_TARGET=/usr/local/x86_64-elf/bin/x86_64-elf-objdump
-
-make all-target-libstdc++-v3
+### C++
+I had hell making the standard C++ library cross compile. I am sure its supported for those who know, but I had to jump through
+various hoops to get it working. The Makefile has the sequence down, including installing newlib. 
 
 
-Add /usr/local/x86_64-elf/x86_64-elf/lib/libc.a to the LD line to get newlibs functions included.
+### UNWIND
+Unwind is needed to handle exceptions properly. The Unwind to use is from LLVM since it supports cross compilation easily, and works. 
 
 
-CC=/usr/local/x86_64-elf/bin/x86_64-elf-gcc \
-CXX=/usr/local/x86_64-elf/bin/x86_64-elf-g++ \
-LD=/usr/local/x86_64-elf/bin/x86_64-elf-ld \
-AS=/usr/local/x86_64-elf/bin/x86_64-elf-as \
-NM=/usr/local/x86_64-elf/bin/x86_64-elf-nm \
-AR=/usr/local/x86_64-elf/bin/x86_64-elf-ar \
-RANLIB=/usr/local/x86_64-elf/bin/x86_64-elf-ranlib \
-OBJDUMP=/usr/local/x86_64-elf/bin/x86_64-elf-objdump
 
+## UEFI
+
+https://wiki.osdev.org/UEFI
+Latest effort is to build UEFI image instead. This has just started
+
+apt install ovfm
+qemu-system-x86_64 -cpu qemu64 -bios /usr/share/ovmf/OVMF.fd -drive file=os.img,if=ide -net none
+
+### GNU-EFI
+There is quirk with the configuration that makes it bail if the compiler throws a warning. Unfortunately newer compilers
+will not agree with some of the code, so the process includes applying a patch that removes -Werror

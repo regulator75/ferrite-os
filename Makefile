@@ -3,6 +3,8 @@
 # Needs a cleanup, and CC etc.
 
 
+EFI_CCFLAGS = -ffreestanding -fpic -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -maccumulate-outgoing-args
+EFI_INCLUDE = -I /usr/local/ferrite/include/efi/ -I /usr/local/ferrite/include/efi/x86_64
 
 LLVM_TARGET_TRIPLE=x86_64-pc-none-elf
 LLVM_TOOLS = /usr/local/llvm-11.0.1
@@ -24,8 +26,8 @@ GCC_TARGET = x86_64-elf
 GCC_VER=10.2.0
 GCC_CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc 
 GCC_LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld -L$(GCC_PREFIX)/$(GCC_TARGET)/lib
-GCC_INCLUDE=-I ./flibc/. -I ./boot_src -I /usr/local/ferrite/include -I /usr/local/ferrite/$(GCC_TARGET)/include/
-GCC_CCFLAGS = -ffreestanding 
+GCC_INCLUDE=-I ./flibc/. -I ./boot_src -I /usr/local/ferrite/include -I /usr/local/ferrite/$(GCC_TARGET)/include/ 
+GCC_CCFLAGS = -ffreestanding -g 
 
 GDB_VER=10.1
 
@@ -302,9 +304,33 @@ obj/unimplemented.o: flibc/unimplemented.cpp
 obj/file_handles.o: flibc/file_handles.c
 	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
 
-
-
 #
+# EFI
+#
+toolbuild/gnu-efi-3.0.12:
+	mkdir -p toolbuild
+	cd toolbuild ; wget https://sourceforge.net/projects/gnu-efi/files/gnu-efi-3.0.12.tar.bz2 ; tar xf gnu-efi-3.0.12.tar.bz2
+	echo "PATCHING Make.defaults TO REMOVE WARNINGS AS ERRORS SINCE NEW COMPILERS WILL COMPLAIN MORE"
+	patch toolbuild/gnu-efi-3.0.12/Make.defaults gnu-efi-remove-werror.patch
+
+
+toolbuild/gnu-efi-done: toolbuild/gnu-efi-3.0.12
+	mkdir -p toolbuild/gnu-efi-3.0.12
+	cd toolbuild/gnu-efi-3.0.12 ; 
+		make    \
+		CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc   \
+		AS=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as \
+		LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
+		AR=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ar \
+		RANLIB=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ranlib   \
+		OBJCOPY=$(GCC_PREFIX)/bin/$(GCC_TARGET)-objcopy \
+		ARCH=x86_64
+
+	cd toolbuild/gnu-efi-3.0.12 ; \
+		sudo make install \
+		PREFIX=$(GCC_PREFIX)
+
+	touch toolbuild/gnu-efi-done
 # Kernel-boot
 #
 
@@ -316,7 +342,7 @@ obj/interrupts_lowlevel.o: boot_src/interrupts_lowlevel.asm
 	nasm -f elf64 $< -o $@ 
 
 obj/kernel.o: boot_src/kernel.asm
-	nasm -f elf64 $< -o obj/kernel.o
+	nasm -f elf64 $< -o $@
 
 obj/kernel_cpp.o: boot_src/kernel.cpp
 	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
@@ -338,6 +364,14 @@ obj/printf.o: boot_src/printf.c
 
 obj/zeros.0:
 	dd if=/dev/zero of=$@ bs=1000000 count=1
+
+
+
+#
+# EFI kernel
+#
+efi_obj/efi_main.o : efi_boot_src/efi_main.c
+	$(CC) $(EFI_CCFLAGS) $(EFI_INCLUDE) -c efi_boot_src/efi_main.c -o $@
 # 
 # Putting it together
 # 
@@ -396,3 +430,28 @@ clean:
 	rm obj/*.o
 
 
+
+efi_obj/os.so: efi_obj/efi_main.o
+	$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld -shared -Bsymbolic -L$(GCC_PREFIX)/lib -T$(GCC_PREFIX)/lib/elf_x86_64_efi.lds \
+	$(GCC_PREFIX)/lib/crt0-efi-x86_64.o $^ \
+	-o $@ -lgnuefi -lefi
+
+obj/os.efi: efi_obj/os.so
+	# TODO update binutils above to use 2.36 so this command can work with the localized version.
+	objcopy -j .text -j .sdata -j .data -j .dynamic -j .dynsym  -j .rel -j .rela -j .rel.* -j .rela.* -j .reloc --target efi-app-x86_64 --subsystem=10 $< $@
+	#$(GCC_PREFIX)/bin/$(GCC_TARGET)-objcopy
+
+os.img: efi_obj/os.efi
+	dd if=/dev/zero of=os.img bs=512 count=93750
+	parted os.img -s -a minimal mklabel gpt
+	parted os.img -s -a minimal mkpart EFI FAT16 2048s 93716s
+	parted os.img -s -a minimal toggle 1 boot
+
+	dd if=/dev/zero of=efi_obj/tmp_part.img bs=512 count=91669
+	mformat -i efi_obj/tmp_part.img -h 32 -t 32 -n 64 -c 1
+
+	mcopy -i efi_obj/tmp_part.img $< ::
+
+	dd if=efi_obj/tmp_part.img of=os.img bs=512 count=91669 seek=2048 conv=notrunc
+
+	rm efi_obj/tmp_part.img

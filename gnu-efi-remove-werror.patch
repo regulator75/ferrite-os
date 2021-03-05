@@ -1,0 +1,16 @@
+--- Make.defaults-orig	2021-03-04 21:24:13.538158793 -0800
++++ Make.defaults	2021-03-04 21:31:16.723181671 -0800
+@@ -166,11 +166,11 @@
+ endif
+ 
+ ifeq (FreeBSD, $(findstring FreeBSD, $(OS)))
+-CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra -Werror \
++CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra  \
+            -fshort-wchar -fno-strict-aliasing \
+            -ffreestanding -fno-stack-protector
+ else
+-CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra -Werror \
++CFLAGS  += $(ARCH3264) -g -O2 -Wall -Wextra \
+            -fshort-wchar -fno-strict-aliasing \
+ 	   -ffreestanding -fno-stack-protector -fno-stack-check \
+            -fno-stack-check \
