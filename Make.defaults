@@ -1,0 +1,50 @@
+GCC_VER=10.2.0
+GDB_VER=10.1
+BINUTILS_VERSION=2.36.1
+NEWLIB_VERSION=3.3.0
+GNU_EFTI_VERSION=3.0.12
+LLVM_LIBUNWIND_VERSION=11.0.0
+
+
+
+
+EFI_CCFLAGS = -ffreestanding -fpic -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -maccumulate-outgoing-args
+EFI_INCLUDE = -I ./boot_src -I /usr/local/ferrite/include/efi/ -I /usr/local/ferrite/include/efi/x86_64
+
+LLVM_TARGET_TRIPLE=x86_64-pc-none-elf
+LLVM_TOOLS = /usr/local/llvm-11.0.1
+LLVM_LIBS = /usr/local/ferrite-llvm
+LLVM_INCLUDE=-I ./flibc/. -I ./boot_src -I /usr/local/ferrite-llvm/include -I /usr/local/ferrite-llvm/$(GCC_TARGET)/include/
+
+LLVM_CC = $(LLVM_TOOLS)/bin/clang
+LLVM_CXX = $(LLVM_TOOLS)/bin/clang++
+LLVM_LD=$(LLVM_TOOLS)/bin/ld.lld
+
+### Ferrite target flags. Used by compiler when generating ferrite OS binaries
+LLVM_CCFLAGS = -g -fno-unique-section-names --target=x86_64-pc-none-elf -ffreestanding 
+
+
+#CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++
+#-lstdc++ 
+GCC_PREFIX=/usr/local/ferrite
+GCC_TARGET = x86_64-elf
+GCC_CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc 
+GCC_LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld -L$(GCC_PREFIX)/$(GCC_TARGET)/lib
+GCC_INCLUDE=-I ./flibc/. -I ./boot_src -I /usr/local/ferrite/include -I /usr/local/ferrite/$(GCC_TARGET)/include/ 
+GCC_CCFLAGS = -ffreestanding -g 
+
+
+#CC = $(LLVM_TOOLS)/bin/clang
+#CXX = $(LLVM_TOOLS)/bin/clang++
+#LD=$(LLVM_TOOLS)/bin/ld.lld
+
+CC=$(GCC_CC)
+LD=$(GCC_LD)
+CCFLAGS = $(GCC_CCFLAGS)
+INCLUDE = $(GCC_INCLUDE)
+
+
+
+LLVM_BINDIR = $(LLVM_TOOLS)/bin
+#CC=$(LLVM_BINDIR)/clang $(INCLUDE) --target=x86_64-pc-none-elf -stdlib=libc++
+LLVMHOSTTOOLS=/usr/local/llvm-11.0.1
