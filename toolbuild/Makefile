@@ -66,7 +66,8 @@ gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st
 	mkdir -p gcc-build
 	cd gcc-build ; ../gcc-$(GCC_VER)/configure --target=$(GCC_TARGET) --prefix=$(GCC_PREFIX) \
 	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib --disable-libaquadmath \
-	--disable-shared --with-as=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as --with-ld=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld --with-build-time-tools=$(GCC_PREFIX)/$(GCC_TARGET)/bin/ \
+	--disable-shared --with-as=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as --with-ld=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
+	--with-build-time-tools=$(GCC_PREFIX)/$(GCC_TARGET)/bin/ \
 	; make all-gcc -j 24 \
 	; make all-target-libgcc -j 24 \
 	; make all-target-libstdc++-v3 -j 24 \
@@ -93,8 +94,8 @@ gdb-$(GDB_VER)-done: gdb-$(GDB_VER)
 	--prefix=$(GCC_PREFIX) \
 	--with-python=/usr/bin/python3 \
 	--host=x86_64-linux-gnu \
-	make \
-	make install
+	; make -j 24 \
+	; sudo make install
 
 	touch gdb-$(GDB_VER)-done
 
