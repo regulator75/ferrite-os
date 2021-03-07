@@ -6,7 +6,7 @@ include ../Make.defaults
 # BINUTILS
 #
 
-all: binutils gcc1 gcc2 gdb newlib libunwind gnu-efi
+all: binutils gcc1 gcc2 gdb newlib libunwind libstdcpp gnu-efi
 
 downloads: binutils-$(BINUTILS_VERSION) gcc-$(GCC_VER) gdb-$(GDB_VER) newlib-$(NEWLIB_VERSION) libunwind-$(LLVM_LIBUNWIND_VERSION).src gnu-efi-$(GNU_EFTI_VERSION)
 
@@ -71,8 +71,8 @@ gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st
 	; make all-target-libgcc -j 24 \
 	; make all-target-libstdc++-v3 -j 24 \
 	; sudo make install-target-libgcc \
-	; sudo make install-gcc \
-	; sudo make install-target-libstdc++-v3 
+	; sudo make install-gcc
+
 
 	touch gcc-$(GCC_VER)-done-2nd
 
@@ -125,8 +125,8 @@ newlib-$(NEWLIB_VERSION)-done: newlib-$(NEWLIB_VERSION) gcc-$(GCC_VER)-done-1st 
 	; make all -j 24 \
 	; sudo make install 
 
-	$(GCC_PREFIX)/bin/$(GCC_TARGET)-as crt0.s -o obj/crt0.o
-	sudo cp obj/crt0.o $(GCC_PREFIX)/$(GCC_TARGET)/lib/
+	$(GCC_PREFIX)/bin/$(GCC_TARGET)-as ../crt0.s -o crt0.o
+	sudo cp crt0.o $(GCC_PREFIX)/$(GCC_TARGET)/lib/.
 
 	touch newlib-$(NEWLIB_VERSION)-done
 
@@ -147,7 +147,7 @@ newlib-$(NEWLIB_VERSION)-done: newlib-$(NEWLIB_VERSION) gcc-$(GCC_VER)-done-1st 
 libunwind : libunwind-$(LLVM_LIBUNWIND_VERSION)-done
 
 libunwind-$(LLVM_LIBUNWIND_VERSION).src:
-	wget https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_LIBUNWIND_VERSION)/libunwind-$(LLVM_LIBUNWIND_VERSION).src.tar.xz \
+	wget https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_LIBUNWIND_VERSION)/libunwind-$(LLVM_LIBUNWIND_VERSION).src.tar.xz
 	tar xf libunwind-$(LLVM_LIBUNWIND_VERSION).src.tar.xz
 
 libunwind-$(LLVM_LIBUNWIND_VERSION)-done: libunwind-$(LLVM_LIBUNWIND_VERSION).src
@@ -159,8 +159,32 @@ libunwind-$(LLVM_LIBUNWIND_VERSION)-done: libunwind-$(LLVM_LIBUNWIND_VERSION).sr
 	-DCMAKE_CXX_COMPILER=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
 	-DCMAKE_INSTALL_PREFIX=$(GCC_PREFIX)/$(GCC_TARGET) \
 	-DCMAKE_CXX_FLAGS="--verbose -D_LIBUNWIND_IS_BAREMETAL=1" \
-	-DLIBUNWIND_ENABLE_THREADS=OFF
+	-DLIBUNWIND_ENABLE_THREADS=OFF \
+	cd libunwind-build \
+	; make \
+	; sudo make install-unwind
 
+
+
+#
+# libstdc++
+#
+libstdcpp: libstdcpp-$(GCC_VER)-done
+
+libstdcpp-$(GCC_VER)-done: gcc-$(GCC_VER)-done-2nd
+	#mkdir -p toolbuild/gcc-build-libstdcpp
+	#cp -a toolbuild/gcc-build/. toolbuild/gcc-build-libstdcpp
+	cd gcc-build \
+	; make distclean \
+	;../gcc-$(GCC_VER)/configure \
+	--target=$(GCC_TARGET) --prefix=$(GCC_PREFIX) \
+	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
+	--with-newlib --disable-shared --disable-libaquadmath \
+	--with-build-sysroot=$(GCC_PREFIX) \
+	; make all-target-libstdc++-v3 -j 24 \
+	; sudo make install-target-libstdc++-v3
+
+	touch libstdcpp-$(GCC_VER)-done
 
 
 #

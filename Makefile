@@ -4,24 +4,6 @@
 
 include Make.defaults
 
-#toolbuild/
-#cmake -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DLLVM_BUILD_DOCS=OFF -DCMAKE_INSTALL_PREFIX=/usr/local/ferrite-llvm -DCMAKE_CROSSCOMPILING=True -DLLVM_ENABLE_PROJECTS="libcxx;libcxxabi;clang;lld" -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-pc-none-eabi -DLLVM_TARGET_ARCH=X86 -DLLVM_TARGETS_TO_BUILD=X86 ../llvm-project-11.0.0/llvm
-
-# --with-headers=$(GCC_PREFIX)/$(GCC_TARGET)/include --with-libs=$(GCC_PREFIX)/$(GCC_TARGET)/lib  
-
-toolbuild/libstdcpp-done: toolbuild/gcc-$(GCC_VER)-done-2nd
-	#mkdir -p toolbuild/gcc-build-libstdcpp
-	#cp -a toolbuild/gcc-build/. toolbuild/gcc-build-libstdcpp
-	cd toolbuild/gcc-build ; ../gcc-$(GCC_VER)/configure \
-	--target=$(GCC_TARGET) --prefix=$(GCC_PREFIX) \
-	--disable-nls --disable-libssp --enable-languages=c,c++ --disable-multilib \
-	--with-newlib --disable-shared --disable-libaquadmath \
-	--with-build-sysroot=$(GCC_PREFIX) \
-	; make all-target-libstdc++-v3 -j 24 \
-	; sudo make install-target-libstdc++-v3
-
-	touch toolbuild/libstdcpp-done
-
 
 #
 # fclib
