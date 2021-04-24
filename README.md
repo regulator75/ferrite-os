@@ -103,3 +103,17 @@ qemu-system-x86_64 -cpu qemu64 -bios /usr/share/ovmf/OVMF.fd -drive file=os.img,
 ### GNU-EFI
 There is quirk with the configuration that makes it bail if the compiler throws a warning. Unfortunately newer compilers
 will not agree with some of the code, so the process includes applying a patch that removes -Werror
+
+Random notes:
+
+Adding a build-variant, that allows to in detail configure the building of GCC:
+--with-build-config=ferrite_os
+
+Good guide for porting GCC to new OS: https://wiki.osdev.org/OS_Specific_Toolchain
+
+Variables that are intresting for adding pre-defined marcos:
+tm_defines and tm_file in configure.gcc
+
+Plan for tomorrow:
+
+Investigate how much work it would use ferrite as OS specifier in triplets.
