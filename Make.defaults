@@ -6,8 +6,6 @@ GNU_EFTI_VERSION=3.0.12
 LLVM_LIBUNWIND_VERSION=11.0.0
 
 
-
-
 EFI_CCFLAGS = -ffreestanding -fpic -fno-stack-protector -fno-stack-check -fshort-wchar -mno-red-zone -maccumulate-outgoing-args
 EFI_INCLUDE = -I ./boot_src -I /usr/local/ferrite/include/efi/ -I /usr/local/ferrite/include/efi/x86_64
 
@@ -27,7 +25,7 @@ LLVM_CCFLAGS = -g -fno-unique-section-names --target=x86_64-pc-none-elf -ffreest
 #CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++
 #-lstdc++ 
 GCC_PREFIX=/usr/local/ferrite
-GCC_TARGET = x86_64-elf
+GCC_TARGET = x86_64-ferrite
 GCC_CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc 
 GCC_LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld -L$(GCC_PREFIX)/$(GCC_TARGET)/lib
 GCC_INCLUDE=-I ./flibc/. -I ./boot_src -I /usr/local/ferrite/include -I /usr/local/ferrite/$(GCC_TARGET)/include/ 

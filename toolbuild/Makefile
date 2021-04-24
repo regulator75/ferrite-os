@@ -6,6 +6,9 @@ include ../Make.defaults
 # BINUTILS
 #
 
+BINUTILS_SRC_LOCATION ?= .
+BINUTILS_SRC_LOCATION := $(shell realpath $(BINUTILS_SRC_LOCATION) )
+
 all: binutils gcc1 gcc2 gdb newlib libunwind libstdcpp gnu-efi
 
 downloads: binutils-$(BINUTILS_VERSION) gcc-$(GCC_VER) gdb-$(GDB_VER) newlib-$(NEWLIB_VERSION) libunwind-$(LLVM_LIBUNWIND_VERSION).src gnu-efi-$(GNU_EFTI_VERSION)
@@ -27,10 +30,10 @@ binutils-$(BINUTILS_VERSION):
 	; tar xf binutils-$(BINUTILS_VERSION).tar.gz
 
 
-binutils-$(BINUTILS_VERSION)-done: binutils-$(BINUTILS_VERSION)
+binutils-$(BINUTILS_VERSION)-done: $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)
 	mkdir -p binutils-build
 	cd binutils-build \
-	; ../binutils-$(BINUTILS_VERSION)/configure \
+	; $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--enable-interwork \
@@ -48,6 +51,9 @@ binutils-$(BINUTILS_VERSION)-done: binutils-$(BINUTILS_VERSION)
 # GCC
 #
 
+GCC_SRC_LOCATION ?= .
+GCC_SRC_LOCATION := $(shell realpath $(GCC_SRC_LOCATION) )
+
 gcc1: gcc-$(GCC_VER)-done-1st
 
 gcc-$(GCC_VER):
@@ -59,7 +65,7 @@ gcc-$(GCC_VER):
 gcc-$(GCC_VER)-done-1st: gcc-$(GCC_VER) binutils-$(BINUTILS_VERSION)-done
 	mkdir -p gcc-build
 	cd gcc-build \
-	; ../gcc-$(GCC_VER)/configure \
+	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--disable-nls \
@@ -69,7 +75,8 @@ gcc-$(GCC_VER)-done-1st: gcc-$(GCC_VER) binutils-$(BINUTILS_VERSION)-done
 		--disable-libaquadmath \
 		--without-headers \
 		--disable-shared \
-		--enable-threads
+		--enable-threads=posix \
+		--with-build-config=ferrite_os
 	make -C gcc-build all-gcc -j 24
 	sudo make -C gcc-build install-gcc
 
@@ -81,7 +88,7 @@ gcc2:gcc-$(GCC_VER)-done-2nd
 gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st 
 	mkdir -p gcc-build
 	cd gcc-build \
-	; ../gcc-$(GCC_VER)/configure \
+	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--disable-nls \
@@ -93,7 +100,8 @@ gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st
 		--with-as=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as \
 		--with-ld=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
 		--with-build-time-tools=$(GCC_PREFIX)/$(GCC_TARGET)/bin/ \
-		--enable-threads 
+		--enable-threads=posix \
+		--with-newlib
 	make -C gcc-build all-gcc -j 24
 	make -C gcc-build all-target-libgcc -j 24
 	sudo make -C gcc-build install-target-libgcc
@@ -128,6 +136,18 @@ gdb-$(GDB_VER)-done: gdb-$(GDB_VER)
 
 
 #
+# CRT
+#
+
+# This section builds crt0.o and installs it
+crt: $(GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o
+
+$(GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o: ../crt0.s
+	$(GCC_PREFIX)/bin/$(GCC_TARGET)-as ../crt0.s -o crt0.o
+	sudo cp crt0.o $@
+
+
+#
 # NEWLIB
 #
 
@@ -142,8 +162,9 @@ newlib-$(NEWLIB_VERSION)-done: newlib-$(NEWLIB_VERSION) gcc-$(GCC_VER)-done-1st 
 	mkdir -p newlib-build
 	cd newlib-build \
 	; ../newlib-$(NEWLIB_VERSION)/configure \
-		--target=$(GCC_TARGET) \
+		--target=x86_64-elf \
 		--prefix=$(GCC_PREFIX) \
+		--exec_prefix=$(GCC_PREFIX)/x86_64_trying \
 		CC_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc \
 		CXX_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
 		LD_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
@@ -154,9 +175,6 @@ newlib-$(NEWLIB_VERSION)-done: newlib-$(NEWLIB_VERSION) gcc-$(GCC_VER)-done-1st 
 		OBJDUMP_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-objdump
 	make -C newlib-build all -j 24
 	sudo make -C newlib-build install 
-
-	$(GCC_PREFIX)/bin/$(GCC_TARGET)-as ../crt0.s -o crt0.o
-	sudo cp crt0.o $(GCC_PREFIX)/$(GCC_TARGET)/lib/.
 
 	touch newlib-$(NEWLIB_VERSION)-done
 
@@ -180,6 +198,8 @@ libunwind-$(LLVM_LIBUNWIND_VERSION).src:
 	wget https://github.com/llvm/llvm-project/releases/download/llvmorg-$(LLVM_LIBUNWIND_VERSION)/libunwind-$(LLVM_LIBUNWIND_VERSION).src.tar.xz
 	tar xf libunwind-$(LLVM_LIBUNWIND_VERSION).src.tar.xz
 
+# Setting _POSIX_THREADS is needed so that pthread from newlib
+# exposes the right stuff.
 libunwind-$(LLVM_LIBUNWIND_VERSION)-done: libunwind-$(LLVM_LIBUNWIND_VERSION).src
 	mkdir -p libunwind-build/
 	cd libunwind-build \
@@ -188,8 +208,8 @@ libunwind-$(LLVM_LIBUNWIND_VERSION)-done: libunwind-$(LLVM_LIBUNWIND_VERSION).sr
 		-DLIBUNWIND_ENABLE_SHARED=OFF \
 		-DCMAKE_CXX_COMPILER=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
 		-DCMAKE_INSTALL_PREFIX=$(GCC_PREFIX)/$(GCC_TARGET) \
-		-DCMAKE_CXX_FLAGS="--verbose -D_LIBUNWIND_IS_BAREMETAL=1" \
-		-DLIBUNWIND_ENABLE_THREADS=OFF 
+		-DCMAKE_CXX_FLAGS="--verbose -D_LIBUNWIND_IS_BAREMETAL=1 -D_POSIX_THREADS=1" \
+		-DLIBUNWIND_ENABLE_THREADS=ON 
 	make -C libunwind-build
 	sudo make -C libunwind-build install-unwind
 
@@ -215,7 +235,7 @@ libstdcpp-$(GCC_VER)-done: gcc-$(GCC_VER)-done-2nd
 		--with-newlib \
 		--disable-shared \
 		--disable-libaquadmath \
-		--enable-threads \
+		--enable-threads=posix \
 		--with-build-sysroot=$(GCC_PREFIX)
 	make -C gcc-build all-target-libstdc++-v3 -j 24
 	sudo make -C gcc-build install-target-libstdc++-v3
