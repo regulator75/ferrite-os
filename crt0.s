@@ -31,6 +31,7 @@ _start:
 	movl %eax, %edi
 	call exit
 
+exit:
 _exit:
 	hlt
 
