@@ -151,6 +151,9 @@ $(GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o: ../crt0.s
 # NEWLIB
 #
 
+NEWLIB_SRC_LOCATION ?= .
+NEWLIB_SRC_LOCATION := $(shell realpath $(NEWLIB_SRC_LOCATION) )
+
 newlib: newlib-$(NEWLIB_VERSION)-done
 
 newlib-$(NEWLIB_VERSION):
@@ -158,11 +161,11 @@ newlib-$(NEWLIB_VERSION):
 	tar xf newlib-$(NEWLIB_VERSION).tar.gz
 
 
-newlib-$(NEWLIB_VERSION)-done: newlib-$(NEWLIB_VERSION) gcc-$(GCC_VER)-done-1st binutils-$(BINUTILS_VERSION)-done
+newlib-$(NEWLIB_VERSION)-done: $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION) gcc-$(GCC_VER)-done-1st binutils-$(BINUTILS_VERSION)-done
 	mkdir -p newlib-build
 	cd newlib-build \
-	; ../newlib-$(NEWLIB_VERSION)/configure \
-		--target=x86_64-elf \
+	; $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION)/configure \
+		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--exec_prefix=$(GCC_PREFIX)/x86_64_trying \
 		CC_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc \
@@ -270,5 +273,23 @@ gnu-efi-$(GNU_EFTI_VERSION)-done: gnu-efi-$(GNU_EFTI_VERSION)
 
 	touch gnu-efi-$(GNU_EFTI_VERSION)-done
 
+
+
+#
+# Automake 1.11 EXACT VERSION BECUASE NEWLIB REQUIRES CYGWIN STYLE AND ITS ONLY AVALIABLE IN OLDER VERSIONS
+#
+GNU_AUTOMAKE_VERSION := 1.11.6
+automake: automake-$(GNU_AUTOMAKE_VERSION)-done
+
+automake-$(GNU_AUTOMAKE_VERSION):
+	wget https://ftp.gnu.org/gnu/automake/automake-$(GNU_AUTOMAKE_VERSION).tar.xz
+	tar xf automake-$(GNU_AUTOMAKE_VERSION).tar.xz
+
+automake-$(GNU_AUTOMAKE_VERSION)-done:
+	mkdir -p automake-build
+	cd automake-build \
+	; ../automake-$(GNU_AUTOMAKE_VERSION)/configure --prefix $(shell realpath automake-$(GNU_AUTOMAKE_VERSION)-bin/ ) \
+	; make \
+	; make install 
 
 
