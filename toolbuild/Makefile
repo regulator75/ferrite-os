@@ -40,7 +40,7 @@ binutils-$(BINUTILS_VERSION)-done: $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_
 		--disable-multilib \
 		--disable-nls \
 		--disable-werror
-	make -C binutils-build all
+	make -C binutils-build all -j 24
 	sudo make -C binutils-build install
 
 	touch binutils-$(BINUTILS_VERSION)-done
@@ -73,9 +73,9 @@ gcc-$(GCC_VER)-done-1st: gcc-$(GCC_VER) binutils-$(BINUTILS_VERSION)-done
 		--enable-languages=c,c++ \
 		--disable-multilib \
 		--disable-libaquadmath \
-		--without-headers \
 		--disable-shared \
 		--enable-threads=posix \
+		--without-headers \
 		--with-build-config=ferrite_os
 	make -C gcc-build all-gcc -j 24
 	sudo make -C gcc-build install-gcc
@@ -97,15 +97,17 @@ gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st
 		--disable-multilib \
 		--disable-libaquadmath \
 		--disable-shared \
+		--enable-threads=posix \
+		--with-build-config=ferrite_os \
 		--with-as=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as \
 		--with-ld=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
 		--with-build-time-tools=$(GCC_PREFIX)/$(GCC_TARGET)/bin/ \
-		--enable-threads=posix \
 		--with-newlib
 	make -C gcc-build all-gcc -j 24
-	make -C gcc-build all-target-libgcc -j 24
-	sudo make -C gcc-build install-target-libgcc
-	sudo make -C gcc-build install-gcc
+	sudo make -C gcc-build install-gcc	
+	#make -C gcc-build all-target-libgcc -j 24
+	#sudo make -C gcc-build install-target-libgcc
+
 
 
 	touch gcc-$(GCC_VER)-done-2nd
@@ -167,7 +169,7 @@ newlib-$(NEWLIB_VERSION)-done: $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION) g
 	; $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION)/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
-		--exec_prefix=$(GCC_PREFIX)/x86_64_trying \
+		--exec_prefix=$(GCC_PREFIX)\
 		CC_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc \
 		CXX_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
 		LD_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
@@ -277,6 +279,7 @@ gnu-efi-$(GNU_EFTI_VERSION)-done: gnu-efi-$(GNU_EFTI_VERSION)
 
 #
 # Automake 1.11 EXACT VERSION BECUASE NEWLIB REQUIRES CYGWIN STYLE AND ITS ONLY AVALIABLE IN OLDER VERSIONS
+# Autoconf
 #
 GNU_AUTOMAKE_VERSION := 1.11.6
 automake: automake-$(GNU_AUTOMAKE_VERSION)-done
@@ -285,11 +288,29 @@ automake-$(GNU_AUTOMAKE_VERSION):
 	wget https://ftp.gnu.org/gnu/automake/automake-$(GNU_AUTOMAKE_VERSION).tar.xz
 	tar xf automake-$(GNU_AUTOMAKE_VERSION).tar.xz
 
-automake-$(GNU_AUTOMAKE_VERSION)-done:
+automake-$(GNU_AUTOMAKE_VERSION)-done: automake-$(GNU_AUTOMAKE_VERSION)
 	mkdir -p automake-build
 	cd automake-build \
-	; ../automake-$(GNU_AUTOMAKE_VERSION)/configure --prefix $(shell realpath automake-$(GNU_AUTOMAKE_VERSION)-bin/ ) \
+	; ../automake-$(GNU_AUTOMAKE_VERSION)/configure --prefix $(shell realpath autotools-bin ) \
 	; make \
 	; make install 
 
 
+GNU_AUTOCONF_VERSION := 2.67
+autoconf: autoconf-$(GNU_AUTOCONF_VERSION)-done
+
+autoconf-$(GNU_AUTOCONF_VERSION):
+	wget https://ftp.gnu.org/gnu/autoconf/autoconf-$(GNU_AUTOCONF_VERSION).tar.xz
+	tar xf autoconf-$(GNU_AUTOCONF_VERSION).tar.xz
+
+# 
+# The mkdir at the end is to avoid a weird error mesage for aclocal while running autoreconf for newlib. 
+# https://wiki.osdev.org/Porting_Newlib
+# https://stackoverflow.com/questions/40119977/autoreconf-ignores-ac-config-macro-dir
+autoconf-$(GNU_AUTOCONF_VERSION)-done: autoconf-$(GNU_AUTOCONF_VERSION)
+	mkdir -p autoconf-build
+	cd autoconf-build \
+	; ../autoconf-$(GNU_AUTOCONF_VERSION)/configure --prefix $(shell realpath autotools-bin/ ) \
+	; make \
+	; make install \
+	; mkdir autotools-bin/share/aclocal
