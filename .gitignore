@@ -1,2 +1,4 @@
 os.bin
 obj/
+toolbuild/*
+!toolbuild/Makefile

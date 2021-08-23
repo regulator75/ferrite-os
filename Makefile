@@ -71,17 +71,19 @@ efi_obj/console.o : boot_src/console.cpp
 
 obj/kernel_combined.bin: obj/file_handles.o obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o obj/file_operations.o obj/newlib_glue_syscalls.o obj/unimplemented.o
 	$(LD) --verbose -v $^ \
-	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libsupc++.a \
-	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libunwind.a \
-	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libstdc++.a  \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libnosys.a \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libm.a \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libc.a \
 	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libg.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/pthread.a \
 	-o obj/kernel_combined.bin \
 	-Tlinker_map.map \
 	--oformat binary \
 	--eh-frame-hdr
+#	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libsupc++.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libunwind.a \
+	$(GCC_PREFIX)/$(GCC_TARGET)/lib/libstdc++.a  \
+
 
 ## DEBUGGING ONLY, identical to above exceot no --oformat binary
 obj/kernel_combined.elf: obj/file_handles.o obj/kernel.o obj/kernel_cpp.o obj/console.o obj/interrupts.o obj/interrupts_lowlevel.o obj/memory.o obj/ports.o obj/newlib_glue_syscalls.o obj/printf.o obj/file_operations.o obj/newlib_glue_syscalls.o obj/unimplemented.o

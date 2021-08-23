@@ -212,6 +212,7 @@ libunwind-$(LLVM_LIBUNWIND_VERSION)-done: libunwind-$(LLVM_LIBUNWIND_VERSION).sr
 		-DLIBUNWIND_ENABLE_STATIC=ON \
 		-DLIBUNWIND_ENABLE_SHARED=OFF \
 		-DCMAKE_CXX_COMPILER=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
+		-DCMAKE_ASM_COMPILER=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as \
 		-DCMAKE_INSTALL_PREFIX=$(GCC_PREFIX)/$(GCC_TARGET) \
 		-DCMAKE_CXX_FLAGS="--verbose -D_LIBUNWIND_IS_BAREMETAL=1 -D_POSIX_THREADS=1" \
 		-DLIBUNWIND_ENABLE_THREADS=ON 
@@ -230,7 +231,7 @@ libstdcpp-$(GCC_VER)-done: gcc-$(GCC_VER)-done-2nd
 	#cp -a toolbuild/gcc-build/. toolbuild/gcc-build-libstdcpp
 	cd gcc-build \
 	; make distclean \
-	; ../gcc-$(GCC_VER)/configure \
+	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--disable-nls \
@@ -241,7 +242,10 @@ libstdcpp-$(GCC_VER)-done: gcc-$(GCC_VER)-done-2nd
 		--disable-shared \
 		--disable-libaquadmath \
 		--enable-threads=posix \
-		--with-build-sysroot=$(GCC_PREFIX)
+		--with-build-sysroot=$(GCC_PREFIX) \
+		--with-build-config=ferrite_os \
+		--with-build-time-tools=$(GCC_PREFIX)/$(GCC_TARGET)/bin/
+
 	make -C gcc-build all-target-libstdc++-v3 -j 24
 	sudo make -C gcc-build install-target-libstdc++-v3
 

@@ -49,6 +49,9 @@ https://stackoverflow.com/questions/3381755/porting-newlib-crt0
 
 https://www.embecosm.com/appnotes/ean9/ean9-howto-newlib-1.0.html [porting newlib]
 
+Porting newlib
+https://wiki.osdev.org/Porting_Newlib
+
 
 ## Tools (GCC)
 
@@ -117,3 +120,15 @@ tm_defines and tm_file in configure.gcc
 Plan for tomorrow:
 
 Investigate how much work it would use ferrite as OS specifier in triplets.
+
+
+make GCC_SRC_LOCATION=~/projects/gcc-ferrite/ NEWLIB_SRC_LOCATION=~/projects/gcc-ferrite/ BINUTILS_SRC_LOCATION=~/projects/gcc-ferrite/ 
+https://www.hpl.hp.com/hosted/linux/mail-archives/libunwind/2004-September/000440.html
+
+
+### Next things todo
+- Install timer hook somehow.
+- Learn how to switch between modes
+- Learn about how manage memory tables for different processes. 
+
+
