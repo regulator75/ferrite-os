@@ -1,0 +1,22 @@
+--- ./binutils-2.36.1/bfd/config.bfd	2021-09-04 14:29:45.770263159 -0700
++++ ../../gcc-ferrite/binutils-2.36.1/bfd/config.bfd	2021-09-04 13:11:27.487681751 -0700
+@@ -1417,6 +1417,19 @@
+     targ_underscore=yes
+     ;;
+ 
++  i[3-7]86-*-ferrite*)
++    targ_defvec=i386_elf32_vec
++    targ_selvecs=
++    targ64_selvecs=x86_64_elf64_vec
++    ;;
++#ifdef BFD64
++  x86_64-*-ferrite*)
++    targ_defvec=x86_64_elf64_vec
++    targ_selvecs=i386_elf32_vec
++    want64=true
++    ;;
++#endif    
++
+ # END OF targmatch.h
+   bpf-*-*)
+     echo "*** Configuration $targ is not fully supported." >&2

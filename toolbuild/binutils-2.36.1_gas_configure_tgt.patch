@@ -1,0 +1,10 @@
+--- ./binutils-2.36.1/gas/configure.tgt	2021-09-04 14:29:45.578255244 -0700
++++ ../../gcc-ferrite/binutils-2.36.1/gas/configure.tgt	2021-03-20 08:53:14.734837713 -0700
+@@ -430,6 +430,7 @@
+   *-*-solaris*)				fmt=elf em=solaris ;;
+   *-*-aros*)				fmt=elf em=linux ;;
+   *-*-vxworks* | *-*-windiss)		fmt=elf em=vxworks ;;
++  i386-*-ferrite*)    fmt=elf ;;
+ esac
+ 
+ case ${cpu_type} in

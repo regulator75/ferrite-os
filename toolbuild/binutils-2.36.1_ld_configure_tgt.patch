@@ -1,0 +1,19 @@
+--- ./binutils-2.36.1/ld/configure.tgt	2021-09-04 14:29:45.438249474 -0700
++++ ../../gcc-ferrite/binutils-2.36.1/ld/configure.tgt	2021-03-20 10:23:44.903639437 -0700
+@@ -1025,6 +1025,16 @@
+ *-*-ieee*)		targ_emul=vanilla
+ 			targ_extra_ofiles=
+ 			;;
++
++i[3-7]86-*-ferrite*)
++			targ_emul=elf_i386_ferrite
++			targ_extra_emuls=elf_i386
++			targ64_extra_emuls="elf_x86_64_ferrite elf_x86_64"
++			;;
++x86_64-*-ferrite*)
++			targ_emul=elf_x86_64_ferrite
++			targ_extra_emuls="elf_i386_ferrite elf_x86_64 elf_i386"
++			;;
+ *)
+   echo 2>&1 "*** ld does not support target ${targ}"
+   echo 2>&1 "*** see ld/configure.tgt for supported targets"

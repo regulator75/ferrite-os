@@ -25,15 +25,32 @@ cleanbuilds:
 
 binutils: binutils-$(BINUTILS_VERSION)-done
 
-binutils-$(BINUTILS_VERSION):
+./binutils-$(BINUTILS_VERSION)-patched: ./binutils-$(BINUTILS_VERSION)-orig
+	patch ./binutils-$(BINUTILS_VERSION)-orig/config.sub          binutils-$(BINUTILS_VERSION)_config_sub.patch    
+	patch ./binutils-$(BINUTILS_VERSION)-orig/bfd/config.bfd      binutils-$(BINUTILS_VERSION)_bfd_config_bfd.patch   
+	patch ./binutils-$(BINUTILS_VERSION)-orig/ld/configure.tgt    binutils-$(BINUTILS_VERSION)_ld_configure_tgt.patch 
+	patch ./binutils-$(BINUTILS_VERSION)-orig/gas/configure.tgt   binutils-$(BINUTILS_VERSION)_gas_configure_tgt.patch
+	patch ./binutils-$(BINUTILS_VERSION)-orig/ld/emulparams/elf_i386_ferrite.sh    binutils-$(BINUTILS_VERSION)_ld_emulparams_elf_i366_ferrite_sh.patch
+	patch ./binutils-$(BINUTILS_VERSION)-orig/ld/emulparams/elf_x86_64_ferrite.sh  binutils-$(BINUTILS_VERSION)_ld_emulparams_elf_x86_64_ferrite_sh.patch
+	patch ./binutils-$(BINUTILS_VERSION)-orig/ld/Makefile.am                       binutils-$(BINUTILS_VERSION)_ld_Makefile_am.patch
+
+	cd ./binutils-$(BINUTILS_VERSION)-orig/ld \
+	; aclocal \
+	; automake
+
+	mv ./binutils-$(BINUTILS_VERSION)-orig ./binutils-$(BINUTILS_VERSION)-patched
+
+./binutils-$(BINUTILS_VERSION)-orig:
 	curl -O https://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS_VERSION).tar.gz \
-	; tar xf binutils-$(BINUTILS_VERSION).tar.gz
+	; tar xf binutils-$(BINUTILS_VERSION).tar.gz \
+	; mv binutils-$(BINUTILS_VERSION) binutils-$(BINUTILS_VERSION)-orig
 
 
-binutils-$(BINUTILS_VERSION)-done: $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)
+
+binutils-$(BINUTILS_VERSION)-done: $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)-patched
 	mkdir -p binutils-build
 	cd binutils-build \
-	; $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)/configure \
+	; $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)-patched/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--enable-interwork \
@@ -318,3 +335,31 @@ autoconf-$(GNU_AUTOCONF_VERSION)-done: autoconf-$(GNU_AUTOCONF_VERSION)
 	; make \
 	; make install \
 	; mkdir autotools-bin/share/aclocal
+
+
+# Assume downloaded original is in X and modified version is in DEV
+#
+# GCC_MODIFIED_SRC this is where the source for the GCC tools that you have modified are.
+# GCC_ORIGINAL_SRC this is the plain unpacked folder from the downloaded files from the internetz
+# This target will generate the neccesary patches so that others can download the original source
+# and re-create the GCC tools that you have just tinkered with on your machine.
+# The arget cherry picks files to avoid pulling in Autoconf et al crap.
+GCC_MODIFIED_SRC ?= NOT_SET_DONT_EXIST
+GCC_ORIGINAL_SRC ?= NOT_SET_DONT_EXIST
+GCC_MODIFIED_SRC := $(shell realpath $(GCC_MODIFIED_SRC) )
+GCC_ORIGINAL_SRC := $(shell realpath $(GCC_ORIGINAL_SRC) )
+gcc-dev-make-patches:
+	echo "Creating patch assuming modified code is in " $(GCC_MODIFIED_SRC) " and original is in " $(GCC_ORIGINAL_SRC)
+#binutils
+	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/config.sub        $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/config.sub        > binutils-$(BINUTILS_VERSION)_config_sub.patch         ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/bfd/config.bfd    $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/bfd/config.bfd    > binutils-$(BINUTILS_VERSION)_bfd_config_bfd.patch     ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/ld/configure.tgt  $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/ld/configure.tgt  > binutils-$(BINUTILS_VERSION)_ld_configure_tgt.patch   ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/gas/configure.tgt $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/gas/configure.tgt > binutils-$(BINUTILS_VERSION)_gas_configure_tgt.patch  ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_i386_ferrite.sh     $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_i386_ferrite.sh     > binutils-$(BINUTILS_VERSION)_ld_emulparams_elf_i366_ferrite_sh.patch     ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_x86_64_ferrite.sh   $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_x86_64_ferrite.sh   > binutils-$(BINUTILS_VERSION)_ld_emulparams_elf_x86_64_ferrite_sh.patch   ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/ld/Makefile.am                        $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/ld/Makefile.am                        > binutils-$(BINUTILS_VERSION)_ld_Makefile_am.patch                        ; [ $$? -eq 1 ]
+	
+
+	
+	
+	
