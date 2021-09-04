@@ -73,21 +73,45 @@ GCC_SRC_LOCATION := $(shell realpath $(GCC_SRC_LOCATION) )
 
 gcc1: gcc-$(GCC_VER)-done-1st
 
-gcc-$(GCC_VER):
+gcc-$(GCC_VER)-orig:
 	curl -O https://ftp.gnu.org/gnu/gcc/gcc-$(GCC_VER)/gcc-$(GCC_VER).tar.gz 
 	tar xf gcc-$(GCC_VER).tar.gz
 	cd gcc-$(GCC_VER) ; ./contrib/download_prerequisites
+	mv gcc-$(GCC_VER) gcc-$(GCC_VER)-orig
+
+gcc-$(GCC_VER)-patched:
+	patch ./gcc-$(GCC_VER)-orig/config.sub                   gcc-$(GCC_VER)_config_sub.patch
+	patch ./gcc-$(GCC_VER)-orig/gcc/config.gcc               gcc-$(GCC_VER)_gcc_config_gcc.patch
+	patch ./gcc-$(GCC_VER)-orig/gcc/config/ferrite.h         gcc-$(GCC_VER)_gcc_config_ferrite_h.patch
+	patch ./gcc-$(GCC_VER)-orig/libstdc++-v3/crossconfig.m4  gcc-$(GCC_VER)_libstdcpp-v3_crossconfig_m4.patch
+	patch ./gcc-$(GCC_VER)-orig/libgcc/config.host           gcc-$(GCC_VER)_libgcc_config_host.patch
+	patch ./gcc-$(GCC_VER)-orig/fixincludes/mkfixinc.sh      gcc-$(GCC_VER)_fixincludes_mkfixinc_sh.patch
+	patch ./gcc-$(GCC_VER)-orig/config/ferrite_os.mk         gcc-$(GCC_VER)_config_ferrite_os_mk.patch	
+
+	cd ./gcc-$(GCC_VER)-orig/mpfr \
+	; aclocal \
+	; automake
+
+	cd ./gcc-$(GCC_VER)-orig/isl \
+	; aclocal \
+	; automake
+
+	cd ./gcc-$(GCC_VER)-orig/libstdc++-v3 \
+	; aclocal \
+	; automake
+
+	mv gcc-$(GCC_VER)-orig gcc-$(GCC_VER)-patched
 
 
-gcc-$(GCC_VER)-done-1st: gcc-$(GCC_VER) binutils-$(BINUTILS_VERSION)-done
+gcc-$(GCC_VER)-done-1st: gcc-$(GCC_VER)-patched binutils-$(BINUTILS_VERSION)-done
 	mkdir -p gcc-build
 	cd gcc-build \
-	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)/configure \
+	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)-patched/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--disable-nls \
 		--disable-libssp \
-		--enable-languages=c,c++ \
+		--enable-languages=c \
 		--disable-multilib \
 		--disable-libaquadmath \
 		--disable-shared \
@@ -105,7 +129,7 @@ gcc2:gcc-$(GCC_VER)-done-2nd
 gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st 
 	mkdir -p gcc-build
 	cd gcc-build \
-	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)/configure \
+	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)-patched/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--disable-nls \
@@ -348,7 +372,12 @@ GCC_MODIFIED_SRC ?= NOT_SET_DONT_EXIST
 GCC_ORIGINAL_SRC ?= NOT_SET_DONT_EXIST
 GCC_MODIFIED_SRC := $(shell realpath $(GCC_MODIFIED_SRC) )
 GCC_ORIGINAL_SRC := $(shell realpath $(GCC_ORIGINAL_SRC) )
-gcc-dev-make-patches:
+
+gcc-dev-make-patches: gcc-dev-make-patches-binutils gcc-dev-make-patches-gcc
+
+
+
+gcc-dev-make-patches-binutils:
 	echo "Creating patch assuming modified code is in " $(GCC_MODIFIED_SRC) " and original is in " $(GCC_ORIGINAL_SRC)
 #binutils
 	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/config.sub        $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/config.sub        > binutils-$(BINUTILS_VERSION)_config_sub.patch         ; [ $$? -eq 1 ]
@@ -358,8 +387,18 @@ gcc-dev-make-patches:
 	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_i386_ferrite.sh     $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_i386_ferrite.sh     > binutils-$(BINUTILS_VERSION)_ld_emulparams_elf_i366_ferrite_sh.patch     ; [ $$? -eq 1 ]
 	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_x86_64_ferrite.sh   $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/ld/emulparams/elf_x86_64_ferrite.sh   > binutils-$(BINUTILS_VERSION)_ld_emulparams_elf_x86_64_ferrite_sh.patch   ; [ $$? -eq 1 ]
 	diff -Naur $(GCC_ORIGINAL_SRC)/binutils-$(BINUTILS_VERSION)/ld/Makefile.am                        $(GCC_MODIFIED_SRC)/binutils-$(BINUTILS_VERSION)/ld/Makefile.am                        > binutils-$(BINUTILS_VERSION)_ld_Makefile_am.patch                        ; [ $$? -eq 1 ]
+
+gcc-dev-make-patches-gcc:
+#gcc	
+	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/config.sub                   $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/config.sub                   > gcc-$(GCC_VER)_config_sub.patch                  ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/gcc/config.gcc               $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/gcc/config.gcc               > gcc-$(GCC_VER)_gcc_config_gcc.patch              ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/gcc/config/ferrite.h         $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/gcc/config/ferrite.h         > gcc-$(GCC_VER)_gcc_config_ferrite_h.patch        ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/libstdc++-v3/crossconfig.m4  $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/libstdc++-v3/crossconfig.m4  > gcc-$(GCC_VER)_libstdcpp-v3_crossconfig_m4.patch ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/libgcc/config.host           $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/libgcc/config.host           > gcc-$(GCC_VER)_libgcc_config_host.patch          ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/fixincludes/mkfixinc.sh      $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/fixincludes/mkfixinc.sh      > gcc-$(GCC_VER)_fixincludes_mkfixinc_sh.patch     ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/config/ferrite_os.mk         $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/config/ferrite_os.mk         > gcc-$(GCC_VER)_config_ferrite_os_mk.patch     ; [ $$? -eq 1 ]
 	
 
-	
-	
+
+
 	

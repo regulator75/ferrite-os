@@ -1,0 +1,38 @@
+--- ./gcc-10.2.0/gcc/config/ferrite.h	1969-12-31 16:00:00.000000000 -0800
++++ ../../gcc-ferrite/gcc-10.2.0/gcc/config/ferrite.h	2021-03-20 12:47:20.732714498 -0700
+@@ -0,0 +1,34 @@
++/* Useful if you wish to make target-specific GCC changes. */
++#undef TARGET_FERRITE
++#define TARGET_FERRITE 1
++ 
++/* Default arguments you want when running your
++   i686-ferrite-gcc/x86_64-ferrite-gcc toolchain */
++#undef LIB_SPEC
++#define LIB_SPEC ""
++//#define LIB_SPEC "-lc" /* link against C standard library */
++ 
++ #undef LIBGCC_SPEC
++ #define LIBGCC_SPEC ""
++/* Files that are linked before user code.
++   The %s tells GCC to look for these files in the library directory. */
++#undef STARTFILE_SPEC
++//#define STARTFILE_SPEC "crt0.o%s crti.o%s crtbegin.o%s"
++#define STARTFILE_SPEC "crt0.o%s"
++
++/* Files that are linked after user code. */
++#undef ENDFILE_SPEC
++#define ENDFILE_SPEC ""
++//#define ENDFILE_SPEC "crtend.o%s crtn.o%s"
++ 
++/* Additional predefined macros. */
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()      \
++  do {                                \
++    builtin_define ("__ferrite__");      \
++    builtin_assert ("system=ferrite");   \
++    builtin_assert ("system=posix");   \
++  } while(0);
++
++//      builtin_define ("__unix__");      
++//      builtin_assert ("system=unix");   
+\ No newline at end of file

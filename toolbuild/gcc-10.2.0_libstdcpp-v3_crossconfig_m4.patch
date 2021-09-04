@@ -1,0 +1,16 @@
+--- ./gcc-10.2.0/libstdc++-v3/crossconfig.m4	2020-07-22 23:35:19.188404867 -0700
++++ ../../gcc-ferrite/gcc-10.2.0/libstdc++-v3/crossconfig.m4	2021-03-20 10:58:10.118978371 -0700
+@@ -292,6 +292,13 @@
+     AC_DEFINE(HAVE_TANF)
+     AC_DEFINE(HAVE_TANHF)
+ 
++  *-ferrite*)
++    GLIBCXX_CHECK_COMPILER_FEATURES
++    GLIBCXX_CHECK_LINKER_FEATURES
++    GLIBCXX_CHECK_MATH_SUPPORT
++    GLIBCXX_CHECK_STDLIB_SUPPORT
++    ;;    
++
+ dnl # Different versions and execution modes implement different
+ dnl # subsets of these functions.  Instead of hard-coding, test for C
+ dnl # declarations in headers.  The C primitives could be defined as

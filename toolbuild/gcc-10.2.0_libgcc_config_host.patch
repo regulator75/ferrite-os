@@ -1,0 +1,17 @@
+--- ./gcc-10.2.0/libgcc/config.host	2020-07-22 23:35:18.752400064 -0700
++++ ../../gcc-ferrite/gcc-10.2.0/libgcc/config.host	2021-03-20 11:04:04.096086833 -0700
+@@ -1491,6 +1491,14 @@
+ 	tmake_file="$tmake_file nvptx/t-nvptx"
+ 	extra_parts="crt0.o"
+ 	;;
++i[34567]86-*-ferrite*)
++	extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++	;;
++x86_64-*-ferrite*)
++	extra_parts="$extra_parts crti.o crtbegin.o crtend.o crtn.o"
++	tmake_file="$tmake_file i386/t-crtstuff t-crtstuff-pic t-libgcc-pic"
++	;;	
+ *)
+ 	echo "*** Configuration ${host} not supported" 1>&2
+ 	exit 1
