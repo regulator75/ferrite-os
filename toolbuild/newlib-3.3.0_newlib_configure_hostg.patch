@@ -1,0 +1,12 @@
+--- ./newlib-3.3.0/newlib/configure.host	2021-09-04 16:41:03.246556783 -0700
++++ ../../gcc-ferrite/newlib-3.3.0/newlib/configure.host	2021-04-24 14:46:52.354428910 -0700
+@@ -452,6 +452,9 @@
+ 	sys_dir=tirtos
+ 	have_crt0="no"
+ 	;;
++  *-*-ferrite*)
++  	sys_dir=ferrite
++  	;;
+   a29k-*-*)
+ 	sys_dir=a29khif
+ 	signal_dir=

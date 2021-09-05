@@ -1,0 +1,12 @@
+--- ./newlib-3.3.0/config.sub	2021-09-04 16:41:03.202556482 -0700
++++ ../../gcc-ferrite/newlib-3.3.0/config.sub	2021-04-24 18:03:07.709134287 -0700
+@@ -1363,7 +1363,8 @@
+ 	     | powermax* | dnix* | nx6 | nx7 | sei* | dragonfly* \
+ 	     | skyos* | haiku* | rdos* | toppers* | drops* | es* \
+ 	     | onefs* | tirtos* | phoenix* | fuchsia* | redox* | bme* \
+-	     | midnightbsd* | amdhsa* | unleashed* | emscripten*)
++	     | midnightbsd* | amdhsa* | unleashed* | emscripten* \
++		 | ferrite* )	     
+ 	# Remember, each alternative MUST END IN *, to match a version number.
+ 		;;
+ 	qnx*)

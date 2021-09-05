@@ -1,0 +1,92 @@
+diff -Naur -x aclocal.m4 -x autom4te.cache -x Makefile.in -x configure ./newlib-3.3.0/newlib/libc/sys/ferrite/configure.in ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/configure.in
+--- ./newlib-3.3.0/newlib/libc/sys/ferrite/configure.in	1969-12-31 16:00:00.000000000 -0800
++++ ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/configure.in	2021-04-24 17:06:39.694370930 -0700
+@@ -0,0 +1,7 @@
++AC_PREREQ(2.59)
++AC_INIT([newlib], [NEWLIB_VERSION])
++AC_CONFIG_SRCDIR([crt0.c])
++AC_CONFIG_AUX_DIR(../../../..)
++NEWLIB_CONFIGURE(../../..)
++AC_CONFIG_FILES([Makefile])
++AC_OUTPUT
+\ No newline at end of file
+diff -Naur -x aclocal.m4 -x autom4te.cache -x Makefile.in -x configure ./newlib-3.3.0/newlib/libc/sys/ferrite/crt0.c ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/crt0.c
+--- ./newlib-3.3.0/newlib/libc/sys/ferrite/crt0.c	1969-12-31 16:00:00.000000000 -0800
++++ ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/crt0.c	2021-04-24 19:04:23.007610924 -0700
+@@ -0,0 +1,9 @@
++#include <fcntl.h>
++ 
++extern void exit(int code);
++extern int main ();
++ 
++void _start() {
++    int ex = main();
++    exit(ex);
++}
+\ No newline at end of file
+diff -Naur -x aclocal.m4 -x autom4te.cache -x Makefile.in -x configure ./newlib-3.3.0/newlib/libc/sys/ferrite/Makefile.am ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/Makefile.am
+--- ./newlib-3.3.0/newlib/libc/sys/ferrite/Makefile.am	1969-12-31 16:00:00.000000000 -0800
++++ ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/Makefile.am	2021-04-24 17:06:59.722880225 -0700
+@@ -0,0 +1,25 @@
++AUTOMAKE_OPTIONS = cygnus
++INCLUDES = $(NEWLIB_CFLAGS) $(CROSS_CFLAGS) $(TARGET_CFLAGS)
++AM_CCASFLAGS = $(INCLUDES)
++ 
++noinst_LIBRARIES = lib.a
++ 
++if MAY_SUPPLY_SYSCALLS
++extra_objs = syscalls.o # add more object files here if you split up
++else                    # syscalls.c into multiple files in the previous step
++extra_objs =
++endif
++ 
++lib_a_SOURCES =
++lib_a_LIBADD = $(extra_objs)
++EXTRA_lib_a_SOURCES = syscalls.c crt0.c # add more source files here if you split up
++lib_a_DEPENDENCIES = $(extra_objs)      # syscalls.c into multiple files
++lib_a_CCASFLAGS = $(AM_CCASFLAGS)
++lib_a_CFLAGS = $(AM_CFLAGS)
++ 
++if MAY_SUPPLY_SYSCALLS
++all: crt0.o
++endif
++ 
++ACLOCAL_AMFLAGS = -I ../../..
++CONFIG_STATUS_DEPENDENCIES = $(newlib_basedir)/configure.host
+\ No newline at end of file
+diff -Naur -x aclocal.m4 -x autom4te.cache -x Makefile.in -x configure ./newlib-3.3.0/newlib/libc/sys/ferrite/syscalls.c ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/syscalls.c
+--- ./newlib-3.3.0/newlib/libc/sys/ferrite/syscalls.c	1969-12-31 16:00:00.000000000 -0800
++++ ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/syscalls.c	2021-04-24 19:13:42.024904935 -0700
+@@ -0,0 +1,32 @@
++// https://wiki.osdev.org/Porting_Newlib
++
++#include <sys/stat.h>
++#include <sys/types.h>
++#include <sys/fcntl.h>
++#include <sys/times.h>
++#include <sys/errno.h>
++#include <sys/time.h>
++#include <stdio.h>
++ 
++void _exit();
++int close(int file);
++char **environ; /* pointer to array of char * strings that define the current environment variables */
++int execve(char *name, char **argv, char **env);
++int fork();
++int fstat(int file, struct stat *st);
++int getpid();
++int isatty(int file);
++int kill(int pid, int sig);
++int link(char *old, char *new);
++int lseek(int file, int ptr, int dir);
++int open(const char *name, int flags, ...);
++int read(int file, char *ptr, int len);
++caddr_t sbrk(int incr);
++int stat(const char *file, struct stat *st);
++clock_t times(struct tms *buf);
++int unlink(char *name);
++int wait(int *status);
++int write(int file, char *ptr, int len);
++//int gettimeofday(struct timeval *p, struct timezone *z);
++int gettimeofday (struct timeval *__restrict __p, void *__restrict __tz);
++

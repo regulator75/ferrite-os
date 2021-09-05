@@ -79,7 +79,7 @@ gcc-$(GCC_VER)-orig:
 	cd gcc-$(GCC_VER) ; ./contrib/download_prerequisites
 	mv gcc-$(GCC_VER) gcc-$(GCC_VER)-orig
 
-gcc-$(GCC_VER)-patched:
+gcc-$(GCC_VER)-patched: gcc-$(GCC_VER)-orig
 	patch ./gcc-$(GCC_VER)-orig/config.sub                   gcc-$(GCC_VER)_config_sub.patch
 	patch ./gcc-$(GCC_VER)-orig/gcc/config.gcc               gcc-$(GCC_VER)_gcc_config_gcc.patch
 	patch ./gcc-$(GCC_VER)-orig/gcc/config/ferrite.h         gcc-$(GCC_VER)_gcc_config_ferrite_h.patch
@@ -199,12 +199,32 @@ NEWLIB_SRC_LOCATION := $(shell realpath $(NEWLIB_SRC_LOCATION) )
 
 newlib: newlib-$(NEWLIB_VERSION)-done
 
-newlib-$(NEWLIB_VERSION):
+newlib-$(NEWLIB_VERSION)-orig:
 	curl -O ftp://sourceware.org/pub/newlib/newlib-$(NEWLIB_VERSION).tar.gz
 	tar xf newlib-$(NEWLIB_VERSION).tar.gz
+	mv newlib-$(NEWLIB_VERSION) newlib-$(NEWLIB_VERSION)-orig
+
+newlib-$(NEWLIB_VERSION)-patched: newlib-$(NEWLIB_VERSION)-orig 
+	patch ./newlib-$(NEWLIB_VERSION)-orig/config.sub                           newlib-$(NEWLIB_VERSION)_config_sub.patch                  
+	patch ./newlib-$(NEWLIB_VERSION)-orig/newlib/configure.host                newlib-$(NEWLIB_VERSION)_newlib_configure_hostg.patch      
+	patch ./newlib-$(NEWLIB_VERSION)-orig/newlib/libc/sys/configure.in         newlib-$(NEWLIB_VERSION)_newlib_libc_sys_configure_in.patch
+###	entire folder requires different patch method. -p2 strips two levels of folders from input patch and applies relative to current folder.
+	cd ./newlib-$(NEWLIB_VERSION)-orig/   ;  patch -p2 < ../newlib-3.3.0_newlib_libc_sys_ferrite.patch
+
+#cd ./newlib-$(NEWLIB_VERSION)-orig/newlib/libc/sys \
+#	; aclocal \
+#	; 
+
+	mv newlib-$(NEWLIB_VERSION)-orig newlib-$(NEWLIB_VERSION)-patched
+
+#https://wiki.osdev.org/Porting_Newlib
 
 
-newlib-$(NEWLIB_VERSION)-done: $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION) gcc-$(GCC_VER)-done-1st binutils-$(BINUTILS_VERSION)-done
+#run autoconf in the newlib/libc/sys/ directory, and autoreconf in the newlib/libc/sys/myos directory.
+
+
+
+newlib-$(NEWLIB_VERSION)-done: $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION)-patched gcc-$(GCC_VER)-done-1st binutils-$(BINUTILS_VERSION)-done
 	mkdir -p newlib-build
 	cd newlib-build \
 	; $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION)/configure \
@@ -373,7 +393,8 @@ GCC_ORIGINAL_SRC ?= NOT_SET_DONT_EXIST
 GCC_MODIFIED_SRC := $(shell realpath $(GCC_MODIFIED_SRC) )
 GCC_ORIGINAL_SRC := $(shell realpath $(GCC_ORIGINAL_SRC) )
 
-gcc-dev-make-patches: gcc-dev-make-patches-binutils gcc-dev-make-patches-gcc
+# Patch work inspired by https://wiki.osdev.org/OS_Specific_Toolchain#ld.2Femulparams.2Felf_i386_myos.sh
+gcc-dev-make-patches: gcc-dev-make-patches-binutils gcc-dev-make-patches-gcc gcc-dev-make-patches-newlib
 
 
 
@@ -398,7 +419,14 @@ gcc-dev-make-patches-gcc:
 	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/fixincludes/mkfixinc.sh      $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/fixincludes/mkfixinc.sh      > gcc-$(GCC_VER)_fixincludes_mkfixinc_sh.patch     ; [ $$? -eq 1 ]
 	diff -Naur $(GCC_ORIGINAL_SRC)/gcc-$(GCC_VER)/config/ferrite_os.mk         $(GCC_MODIFIED_SRC)/gcc-$(GCC_VER)/config/ferrite_os.mk         > gcc-$(GCC_VER)_config_ferrite_os_mk.patch     ; [ $$? -eq 1 ]
 	
+gcc-dev-make-patches-newlib:
+#gcc	
+	diff -Naur $(GCC_ORIGINAL_SRC)/newlib-$(NEWLIB_VERSION)/config.sub                   $(GCC_MODIFIED_SRC)/newlib-$(NEWLIB_VERSION)/config.sub                   > newlib-$(NEWLIB_VERSION)_config_sub.patch                    ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/newlib-$(NEWLIB_VERSION)/newlib/configure.host        $(GCC_MODIFIED_SRC)/newlib-$(NEWLIB_VERSION)/newlib/configure.host        > newlib-$(NEWLIB_VERSION)_newlib_configure_hostg.patch        ; [ $$? -eq 1 ]
+	diff -Naur $(GCC_ORIGINAL_SRC)/newlib-$(NEWLIB_VERSION)/newlib/libc/sys/configure.in $(GCC_MODIFIED_SRC)/newlib-$(NEWLIB_VERSION)/newlib/libc/sys/configure.in > newlib-$(NEWLIB_VERSION)_newlib_libc_sys_configure_in.patch  ; [ $$? -eq 1 ]
+# All relevatn files in the sys/ferrite folder
+	diff -Naur -x aclocal.m4 -x autom4te.cache -x Makefile.in -x configure $(GCC_ORIGINAL_SRC)/newlib-$(NEWLIB_VERSION)/newlib/libc/sys/ferrite/     $(GCC_MODIFIED_SRC)/newlib-$(NEWLIB_VERSION)/newlib/libc/sys/ferrite/     > newlib-$(NEWLIB_VERSION)_newlib_libc_sys_ferrite.patch       ; [ $$? -eq 1 ]
 
 
 
-	
+

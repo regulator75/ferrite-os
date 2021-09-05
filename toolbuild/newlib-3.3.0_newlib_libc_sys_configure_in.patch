@@ -1,0 +1,10 @@
+--- ./newlib-3.3.0/newlib/libc/sys/configure.in	2021-09-04 16:41:03.282557028 -0700
++++ ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/configure.in	2021-04-24 17:03:30.389161158 -0700
+@@ -28,6 +28,7 @@
+ 	d10v) AC_CONFIG_SUBDIRS(d10v) ;;
+ 	decstation) AC_CONFIG_SUBDIRS(decstation) ;;
+ 	epiphany) AC_CONFIG_SUBDIRS(epiphany) ;;
++	ferrite) AC_CONFIG_SUBDIRS(ferrite) ;;
+ 	h8300hms) AC_CONFIG_SUBDIRS(h8300hms) ;;
+ 	h8500hms) AC_CONFIG_SUBDIRS(h8500hms) ;;
+ 	linux) AC_CONFIG_SUBDIRS(linux) ;;

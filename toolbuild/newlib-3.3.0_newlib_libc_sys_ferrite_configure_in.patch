@@ -1,0 +1,11 @@
+--- ./newlib-3.3.0/newlib/libc/sys/ferrite/configure.in	1969-12-31 16:00:00.000000000 -0800
++++ ../../gcc-ferrite/newlib-3.3.0/newlib/libc/sys/ferrite/configure.in	2021-04-24 17:06:39.694370930 -0700
+@@ -0,0 +1,7 @@
++AC_PREREQ(2.59)
++AC_INIT([newlib], [NEWLIB_VERSION])
++AC_CONFIG_SRCDIR([crt0.c])
++AC_CONFIG_AUX_DIR(../../../..)
++NEWLIB_CONFIGURE(../../..)
++AC_CONFIG_FILES([Makefile])
++AC_OUTPUT
+\ No newline at end of file
