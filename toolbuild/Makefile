@@ -194,8 +194,7 @@ $(GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o: ../crt0.s
 # NEWLIB
 #
 
-NEWLIB_SRC_LOCATION ?= .
-NEWLIB_SRC_LOCATION := $(shell realpath $(NEWLIB_SRC_LOCATION) )
+NEWLIB_SRC_LOCATION ?= newlib-$(NEWLIB_VERSION)-patched
 
 newlib: newlib-$(NEWLIB_VERSION)-done
 
@@ -204,30 +203,26 @@ newlib-$(NEWLIB_VERSION)-orig:
 	tar xf newlib-$(NEWLIB_VERSION).tar.gz
 	mv newlib-$(NEWLIB_VERSION) newlib-$(NEWLIB_VERSION)-orig
 
-newlib-$(NEWLIB_VERSION)-patched: newlib-$(NEWLIB_VERSION)-orig 
+newlib-$(NEWLIB_VERSION)-patched: newlib-$(NEWLIB_VERSION)-orig automake autoconf
 	patch ./newlib-$(NEWLIB_VERSION)-orig/config.sub                           newlib-$(NEWLIB_VERSION)_config_sub.patch                  
 	patch ./newlib-$(NEWLIB_VERSION)-orig/newlib/configure.host                newlib-$(NEWLIB_VERSION)_newlib_configure_hostg.patch      
 	patch ./newlib-$(NEWLIB_VERSION)-orig/newlib/libc/sys/configure.in         newlib-$(NEWLIB_VERSION)_newlib_libc_sys_configure_in.patch
 ###	entire folder requires different patch method. -p2 strips two levels of folders from input patch and applies relative to current folder.
 	cd ./newlib-$(NEWLIB_VERSION)-orig/   ;  patch -p2 < ../newlib-3.3.0_newlib_libc_sys_ferrite.patch
 
-#cd ./newlib-$(NEWLIB_VERSION)-orig/newlib/libc/sys \
-#	; aclocal \
-#	; 
+# Run the special versions of autoconf and automake. stick in in a sh so the path dont leak
+	sh -e -c "PATH=$(shell realpath ./ )/autotools-bin/bin:$(PATH) ; cd $(shell realpath ./ )/newlib-3.3.0-orig/newlib/libc/sys ; autoconf"
+	sh -e -c "PATH=$(shell realpath ./ )/autotools-bin/bin:$(PATH) ; cd $(shell realpath ./ )/newlib-3.3.0-orig/newlib/libc/sys/ferrite ; autoreconf"
 
 	mv newlib-$(NEWLIB_VERSION)-orig newlib-$(NEWLIB_VERSION)-patched
 
-#https://wiki.osdev.org/Porting_Newlib
-
-
-#run autoconf in the newlib/libc/sys/ directory, and autoreconf in the newlib/libc/sys/myos directory.
 
 
 
-newlib-$(NEWLIB_VERSION)-done: $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION)-patched gcc-$(GCC_VER)-done-1st binutils-$(BINUTILS_VERSION)-done
+newlib-$(NEWLIB_VERSION)-done: $(NEWLIB_SRC_LOCATION) gcc-$(GCC_VER)-done-1st binutils-$(BINUTILS_VERSION)-done
 	mkdir -p newlib-build
 	cd newlib-build \
-	; $(NEWLIB_SRC_LOCATION)/newlib-$(NEWLIB_VERSION)/configure \
+	; $(shell realpath $(NEWLIB_SRC_LOCATION) )/configure \
 		--target=$(GCC_TARGET) \
 		--prefix=$(GCC_PREFIX) \
 		--exec_prefix=$(GCC_PREFIX)\
@@ -378,7 +373,7 @@ autoconf-$(GNU_AUTOCONF_VERSION)-done: autoconf-$(GNU_AUTOCONF_VERSION)
 	; ../autoconf-$(GNU_AUTOCONF_VERSION)/configure --prefix $(shell realpath autotools-bin/ ) \
 	; make \
 	; make install
-	mkdir autotools-bin/share/aclocal
+	mkdir -p autotools-bin/share/aclocal
 
 
 # Assume downloaded original is in X and modified version is in DEV
