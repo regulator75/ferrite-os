@@ -377,8 +377,8 @@ autoconf-$(GNU_AUTOCONF_VERSION)-done: autoconf-$(GNU_AUTOCONF_VERSION)
 	cd autoconf-build \
 	; ../autoconf-$(GNU_AUTOCONF_VERSION)/configure --prefix $(shell realpath autotools-bin/ ) \
 	; make \
-	; make install \
-	; mkdir autotools-bin/share/aclocal
+	; make install
+	mkdir autotools-bin/share/aclocal
 
 
 # Assume downloaded original is in X and modified version is in DEV
