@@ -2,30 +2,47 @@
 
 include ../Make.defaults
 
+
+ABSOLUTE_GCC_PREFIX = $(shell realpath -m $(GCC_PREFIX))
+ABSOLUTE_GCC_SYSROOT = $(shell realpath -m $(GCC_SYSROOT))
+
 #
 # BINUTILS
 #
 
 BINUTILS_SRC_LOCATION ?= .
-BINUTILS_SRC_LOCATION := $(shell realpath $(BINUTILS_SRC_LOCATION) )
+BINUTILS_SRC_LOCATION := $(shell realpath  $(BINUTILS_SRC_LOCATION) )
 
-all: binutils gcc1 gcc2 gdb newlib libunwind libstdcpp gnu-efi
+all: binutils gcc1 newlib gcc2 
+#Not supported wiht updated sysroot currently
+# gdb libunwind libstdcpp gnu-efi
 
 downloads: binutils-$(BINUTILS_VERSION) gcc-$(GCC_VER) gdb-$(GDB_VER) newlib-$(NEWLIB_VERSION) libunwind-$(LLVM_LIBUNWIND_VERSION).src gnu-efi-$(GNU_EFTI_VERSION)
 
 
 cleanbuilds:
 	rm -rf binutils-build
+	rm -rf binutils-patched	
 	rm -rf gcc-build
-	rm -rf gdb-build
+	rm -rf gcc-patched
 	rm -rf newlib-build
+	rm -rf newlib-patched
+	rm -rf gdb-build
 	rm -rf libunwind-build
 	rm -rf gnu-efi-build
 
 
+## If BINUTILS_BUILD_SOURCE is not set, download and patch the correct version. Otherwise just build with the build source.
+
+
 binutils: binutils-$(BINUTILS_VERSION)-done
 
-./binutils-$(BINUTILS_VERSION)-patched: ./binutils-$(BINUTILS_VERSION)-orig
+binutils-$(BINUTILS_VERSION).tar.gz:
+	curl -O https://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS_VERSION).tar.gz
+
+binutils-$(BINUTILS_VERSION)-patched: binutils-$(BINUTILS_VERSION).tar.gz
+	tar xf binutils-$(BINUTILS_VERSION).tar.gz
+	mv binutils-$(BINUTILS_VERSION) binutils-$(BINUTILS_VERSION)-orig
 	patch ./binutils-$(BINUTILS_VERSION)-orig/config.sub          binutils-$(BINUTILS_VERSION)_config_sub.patch    
 	patch ./binutils-$(BINUTILS_VERSION)-orig/bfd/config.bfd      binutils-$(BINUTILS_VERSION)_bfd_config_bfd.patch   
 	patch ./binutils-$(BINUTILS_VERSION)-orig/ld/configure.tgt    binutils-$(BINUTILS_VERSION)_ld_configure_tgt.patch 
@@ -38,27 +55,27 @@ binutils: binutils-$(BINUTILS_VERSION)-done
 	; aclocal \
 	; automake
 
-	mv ./binutils-$(BINUTILS_VERSION)-orig ./binutils-$(BINUTILS_VERSION)-patched
-
-./binutils-$(BINUTILS_VERSION)-orig:
-	curl -O https://ftp.gnu.org/gnu/binutils/binutils-$(BINUTILS_VERSION).tar.gz \
-	; tar xf binutils-$(BINUTILS_VERSION).tar.gz \
-	; mv binutils-$(BINUTILS_VERSION) binutils-$(BINUTILS_VERSION)-orig
+	mv -T binutils-$(BINUTILS_VERSION)-orig binutils-$(BINUTILS_VERSION)-patched
+	touch binutils-$(BINUTILS_VERSION)-patched
 
 
 
-binutils-$(BINUTILS_VERSION)-done: $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)-patched
+BINUTILS_BUILD_SOURCE ?= binutils-$(BINUTILS_VERSION)-patched
+BINUTILS_BUILD_SOURCE_ABSOLUTE := $(shell realpath $(BINUTILS_BUILD_SOURCE))
+binutils-$(BINUTILS_VERSION)-done: $(BINUTILS_BUILD_SOURCE)
 	mkdir -p binutils-build
+	mkdir -p $(ABSOLUTE_GCC_PREFIX)
 	cd binutils-build \
-	; $(BINUTILS_SRC_LOCATION)/binutils-$(BINUTILS_VERSION)-patched/configure \
+	; $(BINUTILS_BUILD_SOURCE_ABSOLUTE)/configure \
 		--target=$(GCC_TARGET) \
-		--prefix=$(GCC_PREFIX) \
+		--prefix=$(ABSOLUTE_GCC_PREFIX) \
 		--enable-interwork \
 		--disable-multilib \
 		--disable-nls \
-		--disable-werror
+		--disable-werror \
+		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT) 
 	make -C binutils-build all -j 24
-	sudo make -C binutils-build install
+	make -C binutils-build install
 
 	touch binutils-$(BINUTILS_VERSION)-done
 
@@ -73,13 +90,15 @@ GCC_SRC_LOCATION := $(shell realpath $(GCC_SRC_LOCATION) )
 
 gcc1: gcc-$(GCC_VER)-done-1st
 
-gcc-$(GCC_VER)-orig:
+gcc-$(GCC_VER).tar.gz:
 	curl -O https://ftp.gnu.org/gnu/gcc/gcc-$(GCC_VER)/gcc-$(GCC_VER).tar.gz 
+
+gcc-$(GCC_VER)-patched: gcc-$(GCC_VER).tar.gz
+# Ideally this should be in a separate target
 	tar xf gcc-$(GCC_VER).tar.gz
 	cd gcc-$(GCC_VER) ; ./contrib/download_prerequisites
-	mv gcc-$(GCC_VER) gcc-$(GCC_VER)-orig
 
-gcc-$(GCC_VER)-patched: gcc-$(GCC_VER)-orig
+	mv gcc-$(GCC_VER) gcc-$(GCC_VER)-orig
 	patch ./gcc-$(GCC_VER)-orig/config.sub                   gcc-$(GCC_VER)_config_sub.patch
 	patch ./gcc-$(GCC_VER)-orig/gcc/config.gcc               gcc-$(GCC_VER)_gcc_config_gcc.patch
 	patch ./gcc-$(GCC_VER)-orig/gcc/config/ferrite.h         gcc-$(GCC_VER)_gcc_config_ferrite_h.patch
@@ -100,54 +119,66 @@ gcc-$(GCC_VER)-patched: gcc-$(GCC_VER)-orig
 	; aclocal \
 	; automake
 
-	mv gcc-$(GCC_VER)-orig gcc-$(GCC_VER)-patched
+	mv -T gcc-$(GCC_VER)-orig gcc-$(GCC_VER)-patched
 
-
-gcc-$(GCC_VER)-done-1st: gcc-$(GCC_VER)-patched binutils-$(BINUTILS_VERSION)-done
+GCC_BUILD_SOURCE ?= gcc-$(GCC_VER)-patched
+GCC_BUILD_SOURCE_ABSOLUTE = $(shell realpath $(GCC_BUILD_SOURCE))
+gcc-$(GCC_VER)-done-1st: $(GCC_BUILD_SOURCE) binutils-$(BINUTILS_VERSION)-done
 	mkdir -p gcc-build
 	cd gcc-build \
-	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)-patched/configure \
+	; $(GCC_BUILD_SOURCE_ABSOLUTE)/configure \
 		--target=$(GCC_TARGET) \
-		--prefix=$(GCC_PREFIX) \
+		--prefix=$(ABSOLUTE_GCC_PREFIX) \
 		--disable-nls \
 		--disable-libssp \
 		--enable-languages=c \
 		--disable-multilib \
 		--disable-libaquadmath \
 		--disable-shared \
-		--enable-threads=posix \
 		--without-headers \
-		--with-build-config=ferrite_os
+		--with-build-config=ferrite_os \
+		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
+
+#		--enable-threads=posix \
+#prepare folder structure in sysroot. Seems to be needed
+#if its a fresh build
+	mkdir -p $(ABSOLUTE_GCC_SYSROOT)/usr
+	mkdir -p $(ABSOLUTE_GCC_SYSROOT)/usr/include
+
+
 	make -C gcc-build all-gcc -j 24
-	sudo make -C gcc-build install-gcc
+	make -C gcc-build install-gcc
 
 	touch gcc-$(GCC_VER)-done-1st
 
 
 gcc2:gcc-$(GCC_VER)-done-2nd
 
-gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st 
+gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st newlib-$(NEWLIB_VERSION)-done
 	mkdir -p gcc-build
 	cd gcc-build \
-	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)-patched/configure \
+	; $(GCC_BUILD_SOURCE_ABSOLUTE)/configure \
 		--target=$(GCC_TARGET) \
-		--prefix=$(GCC_PREFIX) \
+		--prefix=$(ABSOLUTE_GCC_PREFIX) \
 		--disable-nls \
 		--disable-libssp \
 		--enable-languages=c,c++ \
 		--disable-multilib \
 		--disable-libaquadmath \
 		--disable-shared \
-		--enable-threads=posix \
 		--with-build-config=ferrite_os \
-		--with-as=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as \
-		--with-ld=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
-		--with-build-time-tools=$(GCC_PREFIX)/$(GCC_TARGET)/bin/ \
-		--with-newlib
+		--with-as=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-as \
+		--with-ld=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
+		--with-build-time-tools=$(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET)/bin/ \
+		--with-newlib \
+		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
+#		--enable-threads=posix \
+
+
 	make -C gcc-build all-gcc -j 24
-	sudo make -C gcc-build install-gcc	
+	make -C gcc-build install-gcc	
 	#make -C gcc-build all-target-libgcc -j 24
-	#sudo make -C gcc-build install-target-libgcc
+	#make -C gcc-build install-target-libgcc
 
 
 
@@ -168,11 +199,12 @@ gdb-$(GDB_VER)-done: gdb-$(GDB_VER)
 	cd gdb-build \
 	; ../gdb-$(GDB_VER)/configure \
 		--target=$(GCC_TARGET) \
-		--prefix=$(GCC_PREFIX) \
+		--prefix=$(ABSOLUTE_GCC_PREFIX) \
 		--with-python=/usr/bin/python3 \
-		--host=x86_64-linux-gnu
+		--host=x86_64-linux-gnu \
+		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
 	make -C gdb-build -j 24
-	sudo make -C gdb-build install
+	make -C gdb-build install
 
 	touch gdb-$(GDB_VER)-done
 
@@ -183,11 +215,11 @@ gdb-$(GDB_VER)-done: gdb-$(GDB_VER)
 #
 
 # This section builds crt0.o and installs it
-crt: $(GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o
+crt: $(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o
 
-$(GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o: ../crt0.s
-	$(GCC_PREFIX)/bin/$(GCC_TARGET)-as ../crt0.s -o crt0.o
-	sudo cp crt0.o $@
+$(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET)/lib/crt0.o: ../crt0.s
+	$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-as ../crt0.s -o crt0.o
+	cp crt0.o $@
 
 
 #
@@ -198,12 +230,13 @@ NEWLIB_SRC_LOCATION ?= newlib-$(NEWLIB_VERSION)-patched
 
 newlib: newlib-$(NEWLIB_VERSION)-done
 
-newlib-$(NEWLIB_VERSION)-orig:
+newlib-$(NEWLIB_VERSION).tar.gz:
 	curl -O ftp://sourceware.org/pub/newlib/newlib-$(NEWLIB_VERSION).tar.gz
+
+
+newlib-$(NEWLIB_VERSION)-patched: newlib-$(NEWLIB_VERSION).tar.gz autotools-bin/bin/automake autotools-bin/bin/autoconf
 	tar xf newlib-$(NEWLIB_VERSION).tar.gz
 	mv newlib-$(NEWLIB_VERSION) newlib-$(NEWLIB_VERSION)-orig
-
-newlib-$(NEWLIB_VERSION)-patched: newlib-$(NEWLIB_VERSION)-orig automake autoconf
 	patch ./newlib-$(NEWLIB_VERSION)-orig/config.sub                           newlib-$(NEWLIB_VERSION)_config_sub.patch                  
 	patch ./newlib-$(NEWLIB_VERSION)-orig/newlib/configure.host                newlib-$(NEWLIB_VERSION)_newlib_configure_hostg.patch      
 	patch ./newlib-$(NEWLIB_VERSION)-orig/newlib/libc/sys/configure.in         newlib-$(NEWLIB_VERSION)_newlib_libc_sys_configure_in.patch
@@ -218,24 +251,23 @@ newlib-$(NEWLIB_VERSION)-patched: newlib-$(NEWLIB_VERSION)-orig automake autocon
 
 
 
-
 newlib-$(NEWLIB_VERSION)-done: $(NEWLIB_SRC_LOCATION) gcc-$(GCC_VER)-done-1st binutils-$(BINUTILS_VERSION)-done
 	mkdir -p newlib-build
 	cd newlib-build \
 	; $(shell realpath $(NEWLIB_SRC_LOCATION) )/configure \
 		--target=$(GCC_TARGET) \
-		--prefix=$(GCC_PREFIX) \
-		--exec_prefix=$(GCC_PREFIX)\
-		CC_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc \
-		CXX_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
-		LD_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
-		AS_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc-as \
-		NM_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc-nm \
-		AR_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ar \
-		RANLIB_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ranlib \
-		OBJDUMP_FOR_TARGET=$(GCC_PREFIX)/bin/$(GCC_TARGET)-objdump
+		--prefix=$(ABSOLUTE_GCC_PREFIX) \
+		--exec_prefix=$(ABSOLUTE_GCC_PREFIX)\
+		CC_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-gcc \
+		CXX_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
+		LD_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
+		AS_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-gcc-as \
+		NM_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-gcc-nm \
+		AR_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ar \
+		RANLIB_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ranlib \
+		OBJDUMP_FOR_TARGET=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-objdump
 	make -C newlib-build all -j 24
-	sudo make -C newlib-build install 
+	make -C newlib-build install 
 
 	touch newlib-$(NEWLIB_VERSION)-done
 
@@ -267,13 +299,13 @@ libunwind-$(LLVM_LIBUNWIND_VERSION)-done: libunwind-$(LLVM_LIBUNWIND_VERSION).sr
 	; cmake -G "Unix Makefiles" ../libunwind-$(LLVM_LIBUNWIND_VERSION).src/ \
 		-DLIBUNWIND_ENABLE_STATIC=ON \
 		-DLIBUNWIND_ENABLE_SHARED=OFF \
-		-DCMAKE_CXX_COMPILER=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
-		-DCMAKE_ASM_COMPILER=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as \
-		-DCMAKE_INSTALL_PREFIX=$(GCC_PREFIX)/$(GCC_TARGET) \
+		-DCMAKE_CXX_COMPILER=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-g++ \
+		-DCMAKE_ASM_COMPILER=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-as \
+		-DCMAKE_INSTALL_PREFIX=$(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET) \
 		-DCMAKE_CXX_FLAGS="--verbose -D_LIBUNWIND_IS_BAREMETAL=1 -D_POSIX_THREADS=1" \
 		-DLIBUNWIND_ENABLE_THREADS=ON 
 	make -C libunwind-build
-	sudo make -C libunwind-build install-unwind
+	make -C libunwind-build install-unwind
 
 
 
@@ -289,7 +321,7 @@ libstdcpp-$(GCC_VER)-done: gcc-$(GCC_VER)-done-2nd
 	; make distclean \
 	; $(GCC_SRC_LOCATION)/gcc-$(GCC_VER)/configure \
 		--target=$(GCC_TARGET) \
-		--prefix=$(GCC_PREFIX) \
+		--prefix=$(ABSOLUTE_GCC_PREFIX) \
 		--disable-nls \
 		--disable-libssp \
 		--enable-languages=c,c++ \
@@ -298,12 +330,13 @@ libstdcpp-$(GCC_VER)-done: gcc-$(GCC_VER)-done-2nd
 		--disable-shared \
 		--disable-libaquadmath \
 		--enable-threads=posix \
-		--with-build-sysroot=$(GCC_PREFIX) \
+		--with-build-sysroot=$(ABSOLUTE_GCC_PREFIX) \
 		--with-build-config=ferrite_os \
-		--with-build-time-tools=$(GCC_PREFIX)/$(GCC_TARGET)/bin/
+		--with-build-time-tools=$(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET)/bin/ \
+		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
 
 	make -C gcc-build all-target-libstdc++-v3 -j 24
-	sudo make -C gcc-build install-target-libstdc++-v3
+	make -C gcc-build install-target-libstdc++-v3
 
 	touch libstdcpp-$(GCC_VER)-done
 
@@ -322,16 +355,16 @@ gnu-efi-$(GNU_EFTI_VERSION):
 
 gnu-efi-$(GNU_EFTI_VERSION)-done: gnu-efi-$(GNU_EFTI_VERSION)
 	make -C gnu-efi-$(GNU_EFTI_VERSION)   \
-		CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc   \
-		AS=$(GCC_PREFIX)/bin/$(GCC_TARGET)-as \
-		LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
-		AR=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ar \
-		RANLIB=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ranlib   \
-		OBJCOPY=$(GCC_PREFIX)/bin/$(GCC_TARGET)-objcopy \
+		CC=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-gcc   \
+		AS=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-as \
+		LD=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
+		AR=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ar \
+		RANLIB=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ranlib   \
+		OBJCOPY=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-objcopy \
 		ARCH=x86_64
 
 	
-	sudo make -C gnu-efi-$(GNU_EFTI_VERSION) PREFIX=$(GCC_PREFIX) install 
+	make -C gnu-efi-$(GNU_EFTI_VERSION) PREFIX=$(ABSOLUTE_GCC_PREFIX) install 
 
 	touch gnu-efi-$(GNU_EFTI_VERSION)-done
 
@@ -343,38 +376,40 @@ gnu-efi-$(GNU_EFTI_VERSION)-done: gnu-efi-$(GNU_EFTI_VERSION)
 #
 GNU_AUTOMAKE_VERSION := 1.11.6
 automake: automake-$(GNU_AUTOMAKE_VERSION)-done
+autotools-bin/bin/automake : automake-$(GNU_AUTOMAKE_VERSION)-done
 
-automake-$(GNU_AUTOMAKE_VERSION):
+automake-$(GNU_AUTOMAKE_VERSION).tar.xz:
 	wget https://ftp.gnu.org/gnu/automake/automake-$(GNU_AUTOMAKE_VERSION).tar.xz
-	tar xf automake-$(GNU_AUTOMAKE_VERSION).tar.xz
 
-automake-$(GNU_AUTOMAKE_VERSION)-done: automake-$(GNU_AUTOMAKE_VERSION)
+automake-$(GNU_AUTOMAKE_VERSION)-done: automake-$(GNU_AUTOMAKE_VERSION).tar.xz
+	tar xf automake-$(GNU_AUTOMAKE_VERSION).tar.xz
 	mkdir -p automake-build
 	cd automake-build \
-	; ../automake-$(GNU_AUTOMAKE_VERSION)/configure --prefix $(shell realpath autotools-bin ) \
+	; ../automake-$(GNU_AUTOMAKE_VERSION)/configure --prefix $(shell realpath -m autotools-bin ) \
 	; make \
 	; make install 
+	touch automake-$(GNU_AUTOMAKE_VERSION)-done
 
 
 GNU_AUTOCONF_VERSION := 2.67
 autoconf: autoconf-$(GNU_AUTOCONF_VERSION)-done
-
-autoconf-$(GNU_AUTOCONF_VERSION):
+autotools-bin/bin/autoconf: autoconf-$(GNU_AUTOCONF_VERSION)-done
+autoconf-$(GNU_AUTOCONF_VERSION).tar.xz:
 	wget https://ftp.gnu.org/gnu/autoconf/autoconf-$(GNU_AUTOCONF_VERSION).tar.xz
-	tar xf autoconf-$(GNU_AUTOCONF_VERSION).tar.xz
 
 # 
 # The mkdir at the end is to avoid a weird error mesage for aclocal while running autoreconf for newlib. 
 # https://wiki.osdev.org/Porting_Newlib
 # https://stackoverflow.com/questions/40119977/autoreconf-ignores-ac-config-macro-dir
-autoconf-$(GNU_AUTOCONF_VERSION)-done: autoconf-$(GNU_AUTOCONF_VERSION)
+autoconf-$(GNU_AUTOCONF_VERSION)-done: autoconf-$(GNU_AUTOCONF_VERSION).tar.xz
+	tar xf autoconf-$(GNU_AUTOCONF_VERSION).tar.xz
 	mkdir -p autoconf-build
 	cd autoconf-build \
-	; ../autoconf-$(GNU_AUTOCONF_VERSION)/configure --prefix $(shell realpath autotools-bin/ ) \
+	; ../autoconf-$(GNU_AUTOCONF_VERSION)/configure --prefix $(shell realpath -m autotools-bin/ ) \
 	; make \
 	; make install
 	mkdir -p autotools-bin/share/aclocal
-
+	touch autoconf-$(GNU_AUTOCONF_VERSION)-done
 
 # Assume downloaded original is in X and modified version is in DEV
 #

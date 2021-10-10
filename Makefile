@@ -50,6 +50,7 @@ obj/printf.o: boot_src/printf.c
 	$(CC) $(CCFLAGS) $(INCLUDE) -c $< -o $@
 
 obj/zeros.0:
+	mkdir -p obj/
 	dd if=/dev/zero of=$@ bs=1000000 count=1
 
 

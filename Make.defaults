@@ -22,9 +22,10 @@ LLVM_LD=$(LLVM_TOOLS)/bin/ld.lld
 LLVM_CCFLAGS = -g -fno-unique-section-names --target=x86_64-pc-none-elf -ffreestanding 
 
 
+GCC_SYSROOT=~/ferrite-os_sysroot
 #CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-g++
 #-lstdc++ 
-GCC_PREFIX=/usr/local/ferrite
+GCC_PREFIX=$(GCC_SYSROOT)/usr/local/ferrite
 GCC_TARGET = x86_64-ferrite
 GCC_CC=$(GCC_PREFIX)/bin/$(GCC_TARGET)-gcc 
 GCC_LD=$(GCC_PREFIX)/bin/$(GCC_TARGET)-ld -L$(GCC_PREFIX)/$(GCC_TARGET)/lib
