@@ -22,14 +22,13 @@ downloads: binutils-$(BINUTILS_VERSION) gcc-$(GCC_VER) gdb-$(GDB_VER) newlib-$(N
 
 cleanbuilds:
 	rm -rf binutils-build
-	rm -rf binutils-patched	
 	rm -rf gcc-build
-	rm -rf gcc-patched
 	rm -rf newlib-build
-	rm -rf newlib-patched
 	rm -rf gdb-build
 	rm -rf libunwind-build
 	rm -rf gnu-efi-build
+	rm -rf autoconf-build
+	rm -rf automake-build
 
 
 ## If BINUTILS_BUILD_SOURCE is not set, download and patch the correct version. Otherwise just build with the build source.
@@ -72,8 +71,8 @@ binutils-$(BINUTILS_VERSION)-done: $(BINUTILS_BUILD_SOURCE)
 		--enable-interwork \
 		--disable-multilib \
 		--disable-nls \
-		--disable-werror \
-		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT) 
+		--disable-werror
+#		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT) 
 	make -C binutils-build all -j 24
 	make -C binutils-build install
 
@@ -136,8 +135,8 @@ gcc-$(GCC_VER)-done-1st: $(GCC_BUILD_SOURCE) binutils-$(BINUTILS_VERSION)-done
 		--disable-libaquadmath \
 		--disable-shared \
 		--without-headers \
-		--with-build-config=ferrite_os \
-		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
+		--with-build-config=ferrite_os
+#		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
 
 #		--enable-threads=posix \
 #prepare folder structure in sysroot. Seems to be needed
@@ -170,8 +169,8 @@ gcc-$(GCC_VER)-done-2nd: gcc-$(GCC_VER)-done-1st newlib-$(NEWLIB_VERSION)-done
 		--with-as=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-as \
 		--with-ld=$(ABSOLUTE_GCC_PREFIX)/bin/$(GCC_TARGET)-ld \
 		--with-build-time-tools=$(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET)/bin/ \
-		--with-newlib \
-		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
+		--with-newlib 
+#		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
 #		--enable-threads=posix \
 
 
@@ -201,8 +200,8 @@ gdb-$(GDB_VER)-done: gdb-$(GDB_VER)
 		--target=$(GCC_TARGET) \
 		--prefix=$(ABSOLUTE_GCC_PREFIX) \
 		--with-python=/usr/bin/python3 \
-		--host=x86_64-linux-gnu \
-		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
+		--host=x86_64-linux-gnu 
+#		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
 	make -C gdb-build -j 24
 	make -C gdb-build install
 
@@ -332,8 +331,8 @@ libstdcpp-$(GCC_VER)-done: gcc-$(GCC_VER)-done-2nd
 		--enable-threads=posix \
 		--with-build-sysroot=$(ABSOLUTE_GCC_PREFIX) \
 		--with-build-config=ferrite_os \
-		--with-build-time-tools=$(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET)/bin/ \
-		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
+		--with-build-time-tools=$(ABSOLUTE_GCC_PREFIX)/$(GCC_TARGET)/bin/
+#		--with-sysroot=$(ABSOLUTE_GCC_SYSROOT)
 
 	make -C gcc-build all-target-libstdc++-v3 -j 24
 	make -C gcc-build install-target-libstdc++-v3
