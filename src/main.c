@@ -2,10 +2,12 @@
 #include <efilib.h>
 #include "memory_stuff.h"
 
+int glob_dummy;
 
 EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
 {
     InitializeLib(ImageHandle, SystemTable);
+    int a=0;
     EFI_STATUS Status;
     EFI_INPUT_KEY Key;
  
@@ -15,6 +17,13 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
     /* Say hi */
     Print(L"Hello World 2!\r\n"); // EFI Applications use Unicode and CRLF, a la Windows
     print_memory_map();
+
+    Print(L"Location of kernel code: %8lx\r\n",efi_main);
+    Print(L"Location of stack      : %8lx\r\n",&a);
+    Print(L"Location of globals    : %8lx\r\n",&glob_dummy);
+    Print(L"Location of statics    : %8lx\r\n","A");
+
+
  
     /* Now wait for a keystroke before continuing, otherwise your
        message will flash off the screen before you see it.
