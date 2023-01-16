@@ -8,4 +8,4 @@ typedef struct _taguefi_mmap {
 } uefi_mmap_type;
 
 
-void print_memory_map();
+UINTN print_memory_map();

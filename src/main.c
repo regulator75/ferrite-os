@@ -1,6 +1,7 @@
 #include <efi.h>
 #include <efilib.h>
 #include "memory_stuff.h"
+#include "gdt_stuff.h"
 
 int glob_dummy;
 
@@ -16,12 +17,17 @@ EFI_STATUS efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable)
  
     /* Say hi */
     Print(L"Hello World 2!\r\n"); // EFI Applications use Unicode and CRLF, a la Windows
-    print_memory_map();
+    UINTN MemKey = print_memory_map();
 
-    Print(L"Location of kernel code: %8lx\r\n",efi_main);
-    Print(L"Location of stack      : %8lx\r\n",&a);
-    Print(L"Location of globals    : %8lx\r\n",&glob_dummy);
-    Print(L"Location of statics    : %8lx\r\n","A");
+    Print(L"Location of kernel code: %16lx\r\n",efi_main);
+    Print(L"Location of stack      : %16lx\r\n",&a);
+    Print(L"Location of globals    : %16lx\r\n",&glob_dummy);
+    Print(L"Location of statics    : %16lx\r\n","A");
+
+    ExitBootServices(ImageHandle,MemKey);
+    Print(L"Setting up GDT... ");
+    gdt_setup();
+    Print(L"Done");
 
 
  

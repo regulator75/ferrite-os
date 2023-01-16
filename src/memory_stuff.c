@@ -10,7 +10,7 @@ static void print_chunk(int index, EFI_MEMORY_DESCRIPTOR * desc) {
         , index, desc->Type, desc->NumberOfPages, desc->PhysicalStart ); 
 }
 
-void print_memory_map() {
+UINTN print_memory_map() {
     uefi_mmap_type uefi_mmap; 
 
     Print(L"--- Memory Map ---\r\n" );
@@ -42,6 +42,7 @@ void print_memory_map() {
 
     //next_alloc_page = best_alloc_start;
     /* call ExitBootServices(ImageHandle, mapkey) */
+    return uefi_mmap.mapkey;
 }
 
 
@@ -53,6 +54,7 @@ void print_memory_map() {
 static uint64_t best_alloc_start = 0;
 static uint64_t best_number_of_pages = 0;
 static uint64_t next_alloc_page;
+static uint64_t pages_used = 0;
 
 /**
  * @brief Prepare the page allocation system. Assume kernel memory will stay sane
@@ -90,5 +92,6 @@ void pagealloc_init() {
 void pagealloc_alloc() {
     uint64_t toReturn = next_alloc_page;
     next_alloc_page += 4096;
+    ++pages_used;
     return toReturn;
 }
