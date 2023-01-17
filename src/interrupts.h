@@ -10,4 +10,4 @@ typedef struct {
 typedef void (*irq_handler_func_t)(isr_irq_handler_parameters);
 
 void interrupts_install();
-void register_irq_handler(irq_handler_func_t h);
+void register_irq_handler(int id, irq_handler_func_t h);

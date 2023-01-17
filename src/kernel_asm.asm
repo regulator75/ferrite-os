@@ -16,9 +16,9 @@ kernel_main:
 MSG_KERNEL_RUNNING: db 'Kernel running...',0
 
 ;;;%include "boot_src/32bit-print.asm"
-%include "boot_src/64bit-print.asm"
-%include "boot_src/64bit-switch.asm"
-%include "boot_src/64bit-gdt.asm"
+%include "src/64bit-print.asm"
+%include "src/64bit-switch.asm"
+%include "src/64bit-gdt.asm"
 
 MSG_64_IS_DA_SHIT: db 'Kernel running in 64 bit mode YEAH!',0
 MSG_64_FROM_C_IS_DA_SHIT: db 'This printout came from C',0

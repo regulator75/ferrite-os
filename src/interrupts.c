@@ -17,7 +17,7 @@
  * be 256 of this instances. Each one located by the 
  * CPU based on the IRQ number. 
  */
-struct gate_struct {
+typedef struct __taggate_struct {
 	uint16_t        low_offset;
 	uint16_t        sel;
 
@@ -36,7 +36,7 @@ struct gate_struct {
 	// 64 bit stuff
 	uint32_t        high_offset;
 	uint32_t        reserved;
-} __attribute__((packed));
+} __attribute__((packed)) gate_struct;
 
 /** This tiny structure is pointed to by the IDTR, the CPU register 
  * that is the root used by the CPU to figure out what to do in the 
@@ -150,7 +150,7 @@ void load_idt_registry() {
 }
 
 // Called from the ASM portion of this system, hence the extern "C"
-extern "C" void interupt_service_request_handler(isr_irq_handler_parameters r) {
+void interupt_service_request_handler(isr_irq_handler_parameters r) {
     console_kprint("received interrupt: ");
     console_kprint_uint64(r.int_no);
     console_kprint("\n");
@@ -161,7 +161,7 @@ extern "C" void interupt_service_request_handler(isr_irq_handler_parameters r) {
     ////print_isr_irq_handler_parameters(&r);
 }
 
-extern "C" void interupt_request_line_handler(isr_irq_handler_parameters r) {
+void interupt_request_line_handler(isr_irq_handler_parameters r) {
 
 	// Clear the flag so IRQ subsystem know we are ready 
 	// to recieve another
@@ -189,55 +189,55 @@ extern "C" void interupt_request_line_handler(isr_irq_handler_parameters r) {
 
 }
 
-extern "C" void asm_isr0();
-extern "C" void asm_isr1();
-extern "C" void asm_isr2();
-extern "C" void asm_isr3();
-extern "C" void asm_isr4();
-extern "C" void asm_isr5();
-extern "C" void asm_isr6();
-extern "C" void asm_isr7();
-extern "C" void asm_isr8();
-extern "C" void asm_isr9();
-extern "C" void asm_isr10();
-extern "C" void asm_isr11();
-extern "C" void asm_isr12();
-extern "C" void asm_isr13();
-extern "C" void asm_isr14();
-extern "C" void asm_isr15();
-extern "C" void asm_isr16();
-extern "C" void asm_isr17();
-extern "C" void asm_isr18();
-extern "C" void asm_isr19();
-extern "C" void asm_isr20();
-extern "C" void asm_isr21();
-extern "C" void asm_isr22();
-extern "C" void asm_isr23();
-extern "C" void asm_isr24();
-extern "C" void asm_isr25();
-extern "C" void asm_isr26();
-extern "C" void asm_isr27();
-extern "C" void asm_isr28();
-extern "C" void asm_isr29();
-extern "C" void asm_isr30();
-extern "C" void asm_isr31();
+void asm_isr0();
+void asm_isr1();
+void asm_isr2();
+void asm_isr3();
+void asm_isr4();
+void asm_isr5();
+void asm_isr6();
+void asm_isr7();
+void asm_isr8();
+void asm_isr9();
+void asm_isr10();
+void asm_isr11();
+void asm_isr12();
+void asm_isr13();
+void asm_isr14();
+void asm_isr15();
+void asm_isr16();
+void asm_isr17();
+void asm_isr18();
+void asm_isr19();
+void asm_isr20();
+void asm_isr21();
+void asm_isr22();
+void asm_isr23();
+void asm_isr24();
+void asm_isr25();
+void asm_isr26();
+void asm_isr27();
+void asm_isr28();
+void asm_isr29();
+void asm_isr30();
+void asm_isr31();
 
-extern "C" void asm_irq0();
-extern "C" void asm_irq1();
-extern "C" void asm_irq2();
-extern "C" void asm_irq3();
-extern "C" void asm_irq4();
-extern "C" void asm_irq5();
-extern "C" void asm_irq6();
-extern "C" void asm_irq7();
-extern "C" void asm_irq8();
-extern "C" void asm_irq9();
-extern "C" void asm_irq10();
-extern "C" void asm_irq11();
-extern "C" void asm_irq12();
-extern "C" void asm_irq13();
-extern "C" void asm_irq14();
-extern "C" void asm_irq15();
+void asm_irq0();
+void asm_irq1();
+void asm_irq2();
+void asm_irq3();
+void asm_irq4();
+void asm_irq5();
+void asm_irq6();
+void asm_irq7();
+void asm_irq8();
+void asm_irq9();
+void asm_irq10();
+void asm_irq11();
+void asm_irq12();
+void asm_irq13();
+void asm_irq14();
+void asm_irq15();
 
 #define SET_IDT_GATE_ISR(n) set_idt_gate( n , (const void*)asm_isr##n)
 #define SET_IDT_GATE_IRQ(n) set_idt_gate( (32+n) , (const void*)asm_irq##n)

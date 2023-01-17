@@ -8,26 +8,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-extern "C"  void * __attribute__((nothrow)) malloc(size_t);
-
-class CppLibTesterClazz{
-public:
-	CppLibTesterClazz(int x): m_x(x) {
-		printf("In a constructor \n");
-	}
-private:
-	int m_x;
-
-};
-volatile CppLibTesterClazz * p_instance;
-
+void * __attribute__((nothrow)) malloc(size_t);
 
 /*void kernel_cpp_entry() {
 	p_instance = new CppLibTesterClazz(42);
 
 }*/
-
-extern "C" void kernel_c_entry(void) {
+void kernel_c_entry(void) {
 	console_init();
 	interrupts_install();	
 
@@ -54,6 +41,6 @@ extern "C" void kernel_c_entry(void) {
 
 	//free(p);
 
-	while(true)
+	while(1==1)
 		;
 }

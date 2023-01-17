@@ -216,7 +216,7 @@ void int_to_hex_unsafe(uint64_t n, char str[]) {
     do {
         str[i++] = n % 16 + '0';
         if(str[i-1] > '9' ) {
-            (str[i-1]-=('9'+1))+='A';
+            str[i-1]-='9'+1-'A';
         }
     } while ((n /= 16) > 0); 
     str[i] = '\0';

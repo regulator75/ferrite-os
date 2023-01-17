@@ -62,14 +62,16 @@ load_kernel:
     mov bx, MSG_DONE
     call print    
     call build_memory_map
+    mov bx, MSG_DONE
+    call print    
 
     ret
 
 
 
 ; Include the function print, print_nl and hex16_print
-%include "boot_src/boot_sect_print.asm"
-%include "boot_src/boot_sect_disk.asm"
+%include "src/boot_sect_print.asm"
+%include "src/boot_sect_disk.asm"
 
 
 ; Data
@@ -78,15 +80,15 @@ MSG_32BIT_FAIL: db '1',0
 MSG_32BIT: db '2',0
 MSG_LOADINGKERNEL: db '3',0
 MSG_DONE: db '4',0
-MSG_DEBUG: db '4',0
+MSG_DEBUG: db '5',0
 ;;BOOT_DRIVE db 0 ; It is a good idea to store it in memory because 'dl' may get overwritten
 BOOT_DRIVE db 0x80 ;
 
 
-%include "boot_src/32bit-gdt.asm"
-%include "boot_src/32bit-print.asm"
-%include "boot_src/32bit-switch.asm"
-%include "boot_src/memory_lowlevel.asm"
+%include "src/32bit-gdt.asm"
+%include "src/32bit-print.asm"
+%include "src/32bit-switch.asm"
+%include "src/memory_lowlevel.asm"
 
 
 [bits 32]

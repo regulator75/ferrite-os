@@ -37,6 +37,10 @@
 ;   uint64_t eip, cs, eflags, useresp, ss; /* Pushed by the processor automatically */
 ;} isr_irq_handler_parameters;
 
+;For debugging, make stuff global
+global isr_common_stub
+global irq_common_stub
+
 ; Common ISR code
 isr_common_stub:
     ; 1. Save CPU state
