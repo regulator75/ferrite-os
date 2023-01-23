@@ -23,16 +23,18 @@ OBJ= \
 
 obj/%.o: src/%.c
 	gcc \
-		-fpic \
 		-ffreestanding \
 		-fno-stack-protector \
 		-fno-stack-check \
-		-fshort-wchar \
 		-mno-red-zone \
-		-maccumulate-outgoing-args \
 		-g \
 		-c $< \
 		-o $@
+
+#		-fpic \
+#		-fshort-wchar \
+#		-maccumulate-outgoing-args \
+
 
 obj/%.o: src/%.asm
 	nasm -g -f elf64 $< -o $@
@@ -132,3 +134,6 @@ os.bin: obj/zeros.0 obj/boot_sector.bin obj/kernel_combined.bin
 clean:
 	rm obj/*.bin 
 	rm obj/*.o
+	rm os.bin
+	rm os.elf
+	rm obj/kernel_combined.elf	

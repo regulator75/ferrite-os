@@ -17,7 +17,7 @@
  * be 256 of this instances. Each one located by the 
  * CPU based on the IRQ number. 
  */
-typedef struct __taggate_struct {
+typedef struct __attribute__((packed)) __taggate_struct {
 	uint16_t        low_offset;
 	uint16_t        sel;
 
@@ -36,16 +36,16 @@ typedef struct __taggate_struct {
 	// 64 bit stuff
 	uint32_t        high_offset;
 	uint32_t        reserved;
-} __attribute__((packed)) gate_struct;
+}  gate_struct;
 
 /** This tiny structure is pointed to by the IDTR, the CPU register 
  * that is the root used by the CPU to figure out what to do in the 
  * event of an interrupt. */
 
-typedef struct {
+typedef struct __attribute__((packed)) {
     uint16_t limit;
     uint64_t base; // Note 64 bit size in x86_64 bit mode
-} __attribute__((packed)) idt_register_t;
+}  idt_register_t;
 
 
 /** Data
@@ -53,16 +53,16 @@ typedef struct {
 
 // Instansiate a table of interrupt handlers.
 // This thing needs to be initalized properly.
-static gate_struct s_idt[256]; // It must always be 256, its the CPU architecture that says this.
+static gate_struct __attribute((aligned(16))) s_idt[256]; // It must always be 256, its the CPU architecture that says this.
 
 // Instansiate the "root node for interrupt information".
 // This instance will be pointed to by
-static idt_register_t s_idt_reg;
+static idt_register_t __attribute((aligned(16))) s_idt_reg;
 /* A pointer to the array of interrupt handlers.
  * Assembly instruction 'lidt' will read it */
 
 /** Ferrite OS will hold the C level handlers in this array */
-static irq_handler_func_t s_handlers[256];
+static irq_handler_func_t __attribute((aligned(16))) s_handlers[256];
 
 /** Support for messages */
 const char  *interupt_service_request_handler_exception_messages[] = {
@@ -101,13 +101,13 @@ const char  *interupt_service_request_handler_exception_messages[] = {
 };
 
 
-static uint16_t lowest_16(const void * address) {
+static uint16_t lowest_16(uint64_t address) {
 	return (uint16_t)(((uint64_t)address)& 0xFFFF);
 };
-static uint16_t secondlowest_16(const void * address) {
+static uint16_t secondlowest_16(uint64_t address) {
 	return (uint16_t)((((uint64_t)address) >> 16) & 0xFFFF);
 };
-static uint32_t high_32(const void * address) {
+static uint32_t high_32(uint64_t address) {
 	return (uint32_t)((((uint64_t)address) >> 32) & 0xFFFFFFFF);
 }
 
@@ -129,7 +129,11 @@ void print_isr_irq_handler_parameters(isr_irq_handler_parameters * p) {
 }
 
 
-void set_idt_gate(int n, const void * handler) {
+void set_idt_gate(int n, uint64_t handler) {
+	console_kprint_at("Here is the address of index ",0,15+n);
+	console_kprint_uint64((uint64_t)n);
+	console_kprint_hex((uint64_t)handler);
+
     s_idt[n].low_offset = lowest_16(handler);
     s_idt[n].sel = 0x08; 
     s_idt[n].always0 = 0;
@@ -139,6 +143,21 @@ void set_idt_gate(int n, const void * handler) {
 	s_idt[n].reserved = 0; //0, because why not.    
 }
 
+void print_idt_gate(int n) {
+	console_kprint_at("IDT gate#",0,1);
+	console_kprint_uint64(n);
+    console_kprint("\n low_offset   ");console_kprint_hex( s_idt[n].low_offset );
+    console_kprint("\n sel          ");console_kprint_hex(s_idt[n].sel          );
+    console_kprint("\n always0      ");console_kprint_hex(s_idt[n].always0      );
+    console_kprint("\n flags        ");console_kprint_hex(s_idt[n].flags        );
+    console_kprint("\n middle_offset");console_kprint_hex(s_idt[n].middle_offset);
+	console_kprint("\n high_offset  ");console_kprint_hex(s_idt[n].high_offset  );
+	console_kprint("\n reserved	    ");console_kprint_hex(s_idt[n].reserved	 );
+
+	console_kprint("\n function ptr:");console_kprint_hex( 
+		(uint64_t)s_idt[n].low_offset | (uint64_t)(s_idt[n].middle_offset<<16) | ((uint64_t)s_idt[n].high_offset <<32) );
+
+}
 
 void load_idt_registry() {
     s_idt_reg.base = (uint64_t) &s_idt;
@@ -189,60 +208,63 @@ void interupt_request_line_handler(isr_irq_handler_parameters r) {
 
 }
 
-void asm_isr0();
-void asm_isr1();
-void asm_isr2();
-void asm_isr3();
-void asm_isr4();
-void asm_isr5();
-void asm_isr6();
-void asm_isr7();
-void asm_isr8();
-void asm_isr9();
-void asm_isr10();
-void asm_isr11();
-void asm_isr12();
-void asm_isr13();
-void asm_isr14();
-void asm_isr15();
-void asm_isr16();
-void asm_isr17();
-void asm_isr18();
-void asm_isr19();
-void asm_isr20();
-void asm_isr21();
-void asm_isr22();
-void asm_isr23();
-void asm_isr24();
-void asm_isr25();
-void asm_isr26();
-void asm_isr27();
-void asm_isr28();
-void asm_isr29();
-void asm_isr30();
-void asm_isr31();
+#define DECLARE_EXTERNAL_FP(x) extern uint64_t x 
 
-void asm_irq0();
-void asm_irq1();
-void asm_irq2();
-void asm_irq3();
-void asm_irq4();
-void asm_irq5();
-void asm_irq6();
-void asm_irq7();
-void asm_irq8();
-void asm_irq9();
-void asm_irq10();
-void asm_irq11();
-void asm_irq12();
-void asm_irq13();
-void asm_irq14();
-void asm_irq15();
+DECLARE_EXTERNAL_FP(asm_isr0);
+DECLARE_EXTERNAL_FP(asm_isr1);
+DECLARE_EXTERNAL_FP(asm_isr2);
+DECLARE_EXTERNAL_FP(asm_isr3);
+DECLARE_EXTERNAL_FP(asm_isr4);
+DECLARE_EXTERNAL_FP(asm_isr5);
+DECLARE_EXTERNAL_FP(asm_isr6);
+DECLARE_EXTERNAL_FP(asm_isr7);
+DECLARE_EXTERNAL_FP(asm_isr8);
+DECLARE_EXTERNAL_FP(asm_isr9);
+DECLARE_EXTERNAL_FP(asm_isr10);
+DECLARE_EXTERNAL_FP(asm_isr11);
+DECLARE_EXTERNAL_FP(asm_isr12);
+DECLARE_EXTERNAL_FP(asm_isr13);
+DECLARE_EXTERNAL_FP(asm_isr14);
+DECLARE_EXTERNAL_FP(asm_isr15);
+DECLARE_EXTERNAL_FP(asm_isr16);
+DECLARE_EXTERNAL_FP(asm_isr17);
+DECLARE_EXTERNAL_FP(asm_isr18);
+DECLARE_EXTERNAL_FP(asm_isr19);
+DECLARE_EXTERNAL_FP(asm_isr20);
+DECLARE_EXTERNAL_FP(asm_isr21);
+DECLARE_EXTERNAL_FP(asm_isr22);
+DECLARE_EXTERNAL_FP(asm_isr23);
+DECLARE_EXTERNAL_FP(asm_isr24);
+DECLARE_EXTERNAL_FP(asm_isr25);
+DECLARE_EXTERNAL_FP(asm_isr26);
+DECLARE_EXTERNAL_FP(asm_isr27);
+DECLARE_EXTERNAL_FP(asm_isr28);
+DECLARE_EXTERNAL_FP(asm_isr29);
+DECLARE_EXTERNAL_FP(asm_isr30);
+DECLARE_EXTERNAL_FP(asm_isr31);
 
-#define SET_IDT_GATE_ISR(n) set_idt_gate( n , (const void*)asm_isr##n)
-#define SET_IDT_GATE_IRQ(n) set_idt_gate( (32+n) , (const void*)asm_irq##n)
+DECLARE_EXTERNAL_FP(asm_irq0);
+DECLARE_EXTERNAL_FP(asm_irq1);
+DECLARE_EXTERNAL_FP(asm_irq2);
+DECLARE_EXTERNAL_FP(asm_irq3);
+DECLARE_EXTERNAL_FP(asm_irq4);
+DECLARE_EXTERNAL_FP(asm_irq5);
+DECLARE_EXTERNAL_FP(asm_irq6);
+DECLARE_EXTERNAL_FP(asm_irq7);
+DECLARE_EXTERNAL_FP(asm_irq8);
+DECLARE_EXTERNAL_FP(asm_irq9);
+DECLARE_EXTERNAL_FP(asm_irq10);
+DECLARE_EXTERNAL_FP(asm_irq11);
+DECLARE_EXTERNAL_FP(asm_irq12);
+DECLARE_EXTERNAL_FP(asm_irq13);
+DECLARE_EXTERNAL_FP(asm_irq14);
+DECLARE_EXTERNAL_FP(asm_irq15);
+
+#define SET_IDT_GATE_ISR(n) set_idt_gate( n      , &asm_isr##n )
+#define SET_IDT_GATE_IRQ(n) set_idt_gate( (32+n) , &asm_irq##n )
 
 void interrupts_isr_install() {
+
 	SET_IDT_GATE_ISR(0);
 	SET_IDT_GATE_ISR(1);
 	SET_IDT_GATE_ISR(2);
@@ -305,9 +327,6 @@ void interrupts_isr_install() {
 	SET_IDT_GATE_IRQ(13);
 	SET_IDT_GATE_IRQ(14);
 	SET_IDT_GATE_IRQ(15);
-
-
-    load_idt_registry(); 
 }
 
 void interrupts_install() {
@@ -318,12 +337,32 @@ void interrupts_install() {
 	interrupts_isr_install();
 	load_idt_registry();
 
+	print_idt_gate(0);
+
+	print_idt_gate(1);
+
+	print_idt_gate(2);
+
+	console_kprint_at("->",0,2);
+	console_kprint("s_idt (where, size of [0]):");
+	console_kprint_hex((uint64_t)&s_idt);
+	console_kprint(" ");
+	console_kprint_hex(sizeof(s_idt[0]));
+	console_kprint(" s_idt (where, size of [0]):");
+	console_kprint_hex((uint64_t)&s_idt);
+	console_kprint(" ");
+	console_kprint_hex(sizeof(s_idt[0]));
+	console_kprint("hnd:");
+	console_kprint_hex((uint64_t)&s_idt_reg);
+	console_kprint(" ");
+	console_kprint_hex((uint64_t)&s_handlers[0]);
+
     /* Get current master PIC interrupt mask */
     unsigned char curmask_master = port_byte_in (0x21);
 
     ///* 0xFD is 11111101 - enables only IRQ1 (keyboard) on master pic
     //   by clearing bit 1. bit is clear for enabled and bit is set for disabled */
-    //port_byte_out(0x21, curmask_master & 0xFD);
+    port_byte_out(0x21, curmask_master & 0xFD);
 
 	asm volatile("sti");
 }
