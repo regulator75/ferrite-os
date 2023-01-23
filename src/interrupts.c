@@ -130,10 +130,6 @@ void print_isr_irq_handler_parameters(isr_irq_handler_parameters * p) {
 
 
 void set_idt_gate(int n, uint64_t handler) {
-	console_kprint_at("Here is the address of index ",0,15+n);
-	console_kprint_uint64((uint64_t)n);
-	console_kprint_hex((uint64_t)handler);
-
     s_idt[n].low_offset = lowest_16(handler);
     s_idt[n].sel = 0x08; 
     s_idt[n].always0 = 0;
@@ -260,8 +256,8 @@ DECLARE_EXTERNAL_FP(asm_irq13);
 DECLARE_EXTERNAL_FP(asm_irq14);
 DECLARE_EXTERNAL_FP(asm_irq15);
 
-#define SET_IDT_GATE_ISR(n) set_idt_gate( n      , &asm_isr##n )
-#define SET_IDT_GATE_IRQ(n) set_idt_gate( (32+n) , &asm_irq##n )
+#define SET_IDT_GATE_ISR(n) set_idt_gate( n      , (uint64_t)&asm_isr##n )
+#define SET_IDT_GATE_IRQ(n) set_idt_gate( (32+n) , (uint64_t)&asm_irq##n )
 
 void interrupts_isr_install() {
 
@@ -336,26 +332,6 @@ void interrupts_install() {
 
 	interrupts_isr_install();
 	load_idt_registry();
-
-	print_idt_gate(0);
-
-	print_idt_gate(1);
-
-	print_idt_gate(2);
-
-	console_kprint_at("->",0,2);
-	console_kprint("s_idt (where, size of [0]):");
-	console_kprint_hex((uint64_t)&s_idt);
-	console_kprint(" ");
-	console_kprint_hex(sizeof(s_idt[0]));
-	console_kprint(" s_idt (where, size of [0]):");
-	console_kprint_hex((uint64_t)&s_idt);
-	console_kprint(" ");
-	console_kprint_hex(sizeof(s_idt[0]));
-	console_kprint("hnd:");
-	console_kprint_hex((uint64_t)&s_idt_reg);
-	console_kprint(" ");
-	console_kprint_hex((uint64_t)&s_handlers[0]);
 
     /* Get current master PIC interrupt mask */
     unsigned char curmask_master = port_byte_in (0x21);
