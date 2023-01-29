@@ -6,7 +6,7 @@ kernel_main:
     mov ebx, MSG_KERNEL_RUNNING
     ;;;call print_string_pm ; Note that this will be written at the top left corner
 
-	mov edi, 0x9000
+	mov edi, 0x9000 ;; This is where switch_to_longmode will build the page tables. it will use 16 kb.
 
 	call switch_to_longmode
 
