@@ -7,7 +7,10 @@ OBJ= \
 	 obj/kernel.o \
 	 obj/memory.o \
 	 obj/ports.o \
-	 obj/interrupts_lowlevel.o
+	 obj/interrupts_lowlevel.o \
+	 obj/timer.o \
+	 obj/pagetable_64.o
+#	 obj/pagetable_32.o
 
 # 	 obj/printf.o  obj/main.o obj/memory_stuff.o \
 #	 boot_sect_disk.o \
@@ -20,6 +23,16 @@ OBJ= \
 	 
 	\
 
+obj/%.o: src/%_32.c
+	gcc -m32 \
+		-ffreestanding \
+		-fno-stack-protector \
+		-fno-stack-check \
+		-mno-red-zone \
+		-fPIC \
+		-g \
+		-c $< \
+		-o $@
 
 obj/%.o: src/%.c
 	gcc \
@@ -115,7 +128,12 @@ os.elf: obj/kernel_combined.elf
 
 debug: os.elf os.bin
 	qemu-system-x86_64 -s -S -hda os.bin &
-	gdb -ex "target remote localhost:1234" -ex "symbol-file os.elf" -ex "break *0x7c00" -ex "layout split" -ex "break *0x10000"
+	gdb -ex "target remote localhost:1234" \
+		-ex "symbol-file os.elf" \
+		-ex "break *0x7c00" \
+		-ex "layout split" \
+		-ex "break *0x10000" \
+		-ex "set disassembly-flavor intel"
 
 run: os.bin
 	qemu-system-x86_64 -hda os.bin
