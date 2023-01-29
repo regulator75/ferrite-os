@@ -1,6 +1,6 @@
 ; 64bit-print.asm
 ; BASED ON https://github.com/cfenollosa/os-tutorial/blob/master/08-32bit-print/32bit-print.asm
-[bits 64] ; using 32-bit protected mode
+[bits 64] 
 
 ; this is how constants are defined
 VIDEO_MEMORY equ 0xb8000
