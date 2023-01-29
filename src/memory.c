@@ -1,6 +1,8 @@
 #include "console.h"
 #include "types.h"
 #include "memory.h"
+
+#define PAGE_SIZE 4096
 /**
  * Memory management. like New, malloc, free etc
  */
@@ -97,15 +99,148 @@ void memory_clear( char * target, uint64_t size) {
 	}
 }
 
-unsigned char * memory_first_usable_memory() {
-	unsigned char * toreturn = 0;
+typedef struct _tagMemrange{
+	void * physRangeStart;
+	uint32_t rangeLength; // how many pages in this range.
+	uint32_t in_use; /// Wow, great use of those bits. 
+					 // I know we can squeeze this into physRangeStart 
+					 // lower bits or something but I want to make this simple for now
+	void * next_memrange;
+} memrange;
+
+static memrange * first_memrange_map;
+static int first_memrange_map_count;
+
+void memory_phys_alloc_init(/*uses memory_region_map*/){
+	int first_found= 0;
 	int i = 0;
-	while(!toreturn && memory_region_map[i].length_or_region != 0) {
+	int memrange_idx_it;
+	while(memory_region_map[i].length_or_region != 0) {
 		if(memory_region_map[i].type == 1) { // TYPE 1 is Usable RAM
-			toreturn = (unsigned char*)memory_region_map[i].base;
+			if(!first_found){
+				first_found = 1;
+				// Rudly grab the first know usable memory for our own needs.
+				first_memrange_map = memory_region_map[i].base;
+				first_memrange_map_count = PAGE_SIZE / sizeof(memrange);
+
+				// Initialize the structure. Bootstrap it with 
+				// the page we stole for ourself.
+				first_memrange_map[0].physRangeStart = memory_region_map[i].base;
+				first_memrange_map[0].rangeLength = 1;
+				first_memrange_map[0].in_use = 1;
+				first_memrange_map[0].next_memrange = &first_memrange_map[1];
+
+				first_memrange_map[1].physRangeStart = memory_region_map[i].base + PAGE_SIZE;
+				first_memrange_map[1].rangeLength = memory_region_map[i].length_or_region / PAGE_SIZE - PAGE_SIZE; //- PAGE_SIZE since we stole one for ourselves
+				first_memrange_map[1].in_use = 0; // Free
+				first_memrange_map[1].next_memrange = 0; // Will be altered if we find more
+
+				memrange_idx_it = 2;
+			} else {
+				first_memrange_map[memrange_idx_it].physRangeStart = memory_region_map[i].base;
+				first_memrange_map[memrange_idx_it].rangeLength = memory_region_map[i].length_or_region / PAGE_SIZE;
+				first_memrange_map[memrange_idx_it].in_use = 0; // Free
+				first_memrange_map[memrange_idx_it].next_memrange = 0; // Will be altered if we find more
+
+				first_memrange_map[memrange_idx_it-1].next_memrange = &first_memrange_map[memrange_idx_it]; // Will be altered if we find more
+				memrange_idx_it++;
+			}
+		}
+		i++;
+	}
+
+	// Clean up the rest of the descriptors.
+	while(memrange_idx_it < first_memrange_map_count){
+		first_memrange_map[memrange_idx_it].physRangeStart = 0;
+		first_memrange_map[memrange_idx_it].rangeLength    = 0;
+		first_memrange_map[memrange_idx_it].in_use         = 0; 
+		first_memrange_map[memrange_idx_it].next_memrange  = 0; 
+	}
+}
+
+void memory_phys_collapse_memrange(memrange * prev, memrange * curr) {
+	// It turned into nothing, remove it.
+	prev->next_memrange = curr->next_memrange;
+	curr->physRangeStart = 0;
+	curr->next_memrange = 0;
+	curr->in_use = 0;
+}
+
+memrange * find_free_memrange_descriptor(){
+	for(int i = 0 ; i < first_memrange_map_count ; i++){
+		if(0 == first_memrange_map[i].physRangeStart) {
+			return &first_memrange_map[i];
 		}
 	}
-	return toreturn;
+	return 0;
+}
+
+// Allocates a physical page
+void * memory_phys_alloc_page(int count) {
+
+	void * toReturn = 0;
+	// Look first free range
+	memrange * it = first_memrange_map;
+	memrange * it_prev = 0;
+	while(it && it->in_use !=0 && it->rangeLength < count) {
+		it_prev = it;
+		it=it->next_memrange;
+	}
+	// TODO: Add end marker and indicator that the memrange map spans over to another page
+	// TODO: bail if it is null, we are out of memory
+	if(!it) {
+		console_kprint("No free page found in memory_phys_alloc_page\n");
+		return 0;
+	}
+
+	// Now we have found a free page. 
+	// We will take the first page of this.
+	toReturn = it->physRangeStart;
+
+
+	// Adjust the bookkeeping
+
+	//Lets see if the previous range
+	// is aligned neatly with this, if so just adjust the boundary.
+	if(it_prev->physRangeStart + it_prev->rangeLength*PAGE_SIZE*count == it->physRangeStart) {
+		// Expand previous into this
+		it_prev->rangeLength += count;
+		it->physRangeStart += PAGE_SIZE*count;
+		it->rangeLength -= count;
+
+		// Check if this range collapsed totally
+		if(it->rangeLength == 0) {
+			memory_phys_collapse_memrange(it_prev, it);
+		}
+	} else {
+		// There is some gap, lets create a new memrange.
+		// This is only the case when allocations happens
+		// on a completely new memory sector.
+		
+		// Prepare the new range descriptor
+		memrange * newly_minted = find_free_memrange_descriptor();
+		newly_minted->next_memrange = it;
+		newly_minted->in_use=1;
+		newly_minted->physRangeStart = it->physRangeStart;
+		newly_minted->rangeLength = count;
+
+		// Adjust the range that had the free
+		it->physRangeStart += PAGE_SIZE * count;
+		it->rangeLength -= count; // Give one up to newly_minted
+		
+		// insert newly_minted 
+		it_prev->next_memrange = newly_minted;
+
+		// Check if this segment is now empty
+		if(it->rangeLength == 0) {
+			memory_phys_collapse_memrange(it_prev, it);
+		}
+	}
+}
+
+void memory_phys_alloc_free(void * p) {
+	// TODO
+
 }
 
 
