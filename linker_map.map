@@ -10,6 +10,7 @@ SECTIONS
 {
     .text :
     {
+        _kernel_begin = . ;    
         KEEP(*(.vectors .vectors.*))
         *(.text*)
         *(.rodata*)
@@ -56,4 +57,5 @@ SECTIONS
     } > ram
 */
     _end = . ;
+    _kernel_end = . ;
 }
