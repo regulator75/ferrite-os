@@ -11,10 +11,6 @@
 
 void * __attribute__((nothrow)) malloc(size_t);
 
-/*void kernel_cpp_entry() {
-	p_instance = new CppLibTesterClazz(42);
-
-}*/
 void timer_install();
 
 void kernel_c_entry(void) {
@@ -27,21 +23,7 @@ void kernel_c_entry(void) {
 	volatile int b = 0;
 
 	console_kprint_at("Ferrite OS 0.0.0.0",0,1);
-
-//	memory_analyze_and_print();
-
-	// This seems broken at the moment
-	//printf("Hello Printf\n");
-
-//	CppLibTesterClazz clz(0);
-//	CppLibTesterClazz * pcls = new CppLibTesterClazz(1);
-	//CppLibTesterClazz * pz = new CppLibTesterClazz(2);
-
-	//void * p= malloc(34);
-
 	console_kprint("\nNow try the keyboard");
-
-	//free(p);
 
 	console_kprint("\nm -> print memory layout");
 	while(1==1) {
