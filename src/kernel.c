@@ -26,12 +26,14 @@ void kernel_c_entry(void) {
 	console_kprint("\nNow try the keyboard");
 
 	console_kprint("\nm -> print memory layout");
+	console_kprint("\np -> Page table info");
 	while(1==1) {
 		char c = (char)keyboard_getc();
 		console_kprint_char(c);
 		console_kprint_char('\n');
 		switch(c) {
-			case 'm': memory_phys_print_map();
+			case 'm': memory_phys_print_map(); break;
+			case 'p': pagetable_debug_print(); break;
 
 		}
 
