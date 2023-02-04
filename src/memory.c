@@ -7,7 +7,6 @@
  * Memory management. like New, malloc, free etc
  */
 
-
 typedef struct memory_region{
 	uint64_t base;
 	uint64_t length_or_region;
@@ -111,11 +110,16 @@ typedef struct _tagMemrange{
 static memrange * first_memrange_map;
 static int first_memrange_map_count;
 
+static char is_address_within_region(memory_region_t * pregion, void * address) {
+	return address > pregion->base && address < pregion->base+pregion->length_or_region;
+}
+
 void memory_phys_alloc_init(/*uses memory_region_map*/){
 	int first_found= 0;
 	int i = 0;
 	int memrange_idx_it;
 	while(memory_region_map[i].length_or_region != 0) {
+		char dont_use_this = is_address_within_region(&memory_region_map[i],(void*)memory_phys_alloc_init);
 		if(memory_region_map[i].type == 1) { // TYPE 1 is Usable RAM
 			if(!first_found){
 				first_found = 1;
