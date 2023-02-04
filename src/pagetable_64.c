@@ -16,7 +16,7 @@ typedef struct {
 // NX         Physical address         U  W  P
 
 
-static uint64_t PML4_location;
+/*static*/ uint64_t PML4_location;
 void print_ptable_entry(uint64_t entry) {
     char nx = 0 != entry & 0x8000000000000000;
     uint32_t n6248 = (entry & 0x7FFF000000000000) >> 48;

@@ -7,6 +7,13 @@
  * Memory management. like New, malloc, free etc
  */
 
+
+/**
+ *  
+ * PHYSICAL MEMORY ANALYSIS
+ * 
+ */
+
 typedef struct memory_region{
 	uint64_t base;
 	uint64_t length_or_region;
@@ -77,6 +84,14 @@ void memory_phys_print_map() {
 	}
 }
 
+
+/** 
+ *
+ * UTILITY FUNCTIONS
+ * 
+*/
+
+
 void memory_copy(const char *source, char *dest, int nbytes) {
     // TODO: Add 1-byte premove, 8 byt mid-section, 1-byte postmove
     for (int i = 0; i < nbytes; i++) {
@@ -100,6 +115,13 @@ void memory_clear( char * target, uint64_t size) {
 	}
 }
 
+
+/**
+ * 
+ * PHYSICAL MEMORY ALLOCATION ACCOUNTING
+ * 
+ */
+
 typedef struct _tagMemrange{
 	void * physRangeStart;
 	uint32_t rangeLength; // how many pages in this range.
@@ -109,67 +131,57 @@ typedef struct _tagMemrange{
 	void * next_memrange;
 } memrange;
 
-static memrange * first_memrange_map;
-static int first_memrange_map_count;
+memrange first_memrange_map_buffer[PAGE_SIZE/sizeof(memrange)] __attribute__ ((aligned (4096)));
+
+
+memrange * first_memrange_map;
+int first_memrange_map_count;
 
 static char is_address_within_region(memory_region_t * pregion, void * address) {
 	return address > pregion->base && address < pregion->base+pregion->length_or_region;
 }
 
 void memory_phys_alloc_init(/*uses memory_region_map*/){
-	int first_found= 0;
 	int i = 0;
-	int memrange_idx_it;
+	int memrange_idx_it = 0;
+
+	first_memrange_map = &first_memrange_map_buffer[0];
+	first_memrange_map_count = PAGE_SIZE / sizeof(memrange);
+	// TODO: See if we can get static initalizeres working so it can be
+	// zeroed out for sure.
+	memory_clear(first_memrange_map_buffer,sizeof(first_memrange_map_buffer));
+
+	// First, map the entire memory, pretend its all free.
 	while(memory_region_map[i].length_or_region != 0) {
-		char dont_use_this = is_address_within_region(&memory_region_map[i],(void*)memory_phys_alloc_init);
 		if(memory_region_map[i].type == 1) { // TYPE 1 is Usable RAM
-			if(!first_found){
-				first_found = 1;
-				// Rudly grab the first know usable memory for our own needs.
-				first_memrange_map = memory_region_map[i].base;
-				first_memrange_map_count = PAGE_SIZE / sizeof(memrange);
+			first_memrange_map[memrange_idx_it].physRangeStart = memory_region_map[i].base;
+			first_memrange_map[memrange_idx_it].rangeLength = memory_region_map[i].length_or_region / PAGE_SIZE;
+			first_memrange_map[memrange_idx_it].in_use = 0; // Free
+			first_memrange_map[memrange_idx_it].next_memrange = 0; // Will be altered if we find more
 
-				// Initialize the structure. Bootstrap it with 
-				// the page we stole for ourself.
-				first_memrange_map[0].physRangeStart = memory_region_map[i].base;
-				first_memrange_map[0].rangeLength = 1;
-				first_memrange_map[0].in_use = 1;
-				first_memrange_map[0].next_memrange = &first_memrange_map[1];
-
-				first_memrange_map[1].physRangeStart = memory_region_map[i].base + PAGE_SIZE;
-				first_memrange_map[1].rangeLength = memory_region_map[i].length_or_region / PAGE_SIZE - PAGE_SIZE; //- PAGE_SIZE since we stole one for ourselves
-				first_memrange_map[1].in_use = 0; // Free
-				first_memrange_map[1].next_memrange = 0; // Will be altered if we find more
-
-				memrange_idx_it = 2;
-			} else {
-				first_memrange_map[memrange_idx_it].physRangeStart = memory_region_map[i].base;
-				first_memrange_map[memrange_idx_it].rangeLength = memory_region_map[i].length_or_region / PAGE_SIZE;
-				first_memrange_map[memrange_idx_it].in_use = 0; // Free
-				first_memrange_map[memrange_idx_it].next_memrange = 0; // Will be altered if we find more
-
+			// If this is not the first range...
+			if(memrange_idx_it != 0) {
+				// link the previous range to this
 				first_memrange_map[memrange_idx_it-1].next_memrange = &first_memrange_map[memrange_idx_it]; // Will be altered if we find more
-				memrange_idx_it++;
 			}
+			memrange_idx_it++;
 		}
 		i++;
 	}
 
-	// Clean up the rest of the descriptors.
-	while(memrange_idx_it < first_memrange_map_count){
-		first_memrange_map[memrange_idx_it].physRangeStart = 0;
-		first_memrange_map[memrange_idx_it].rangeLength    = 0;
-		first_memrange_map[memrange_idx_it].in_use         = 0; 
-		first_memrange_map[memrange_idx_it].next_memrange  = 0; 
-	}
+	// Second, carve out the pieces that are known to be in use
+
 }
 
-void memory_phys_collapse_memrange(memrange * prev, memrange * curr) {
+void memory_phys_collapse_memrange(memrange * prev, memrange * collapsed_and_goes_away) {
 	// It turned into nothing, remove it.
-	prev->next_memrange = curr->next_memrange;
-	curr->physRangeStart = 0;
-	curr->next_memrange = 0;
-	curr->in_use = 0;
+	// Skip over us in the linked list.
+	prev->next_memrange = collapsed_and_goes_away->next_memrange;
+
+	// Zero out members to mark it free.
+	collapsed_and_goes_away->physRangeStart = 0;
+	collapsed_and_goes_away->next_memrange = 0;
+	collapsed_and_goes_away->in_use = 0;
 }
 
 memrange * find_free_memrange_descriptor(){
@@ -180,6 +192,92 @@ memrange * find_free_memrange_descriptor(){
 	}
 	return 0;
 }
+
+// Find the memrange that maps the address given, making sure
+// it also includes all of the length. 
+// If no range is found, or if the length is not fully included,
+// return 0;
+// This function should only be used to locate memranges that need
+// sections to be carved out during init, such as the space occupied
+// by the kernel, GDT tables, Video memory etc.
+memrange * take_memrange_for_address(void * p, int length){
+
+	memrange * it = first_memrange_map;
+	memrange * it_prev = 0;
+	int pages_needed = length+(PAGE_SIZE-1) / PAGE_SIZE;
+
+	while(it && !( p >= it->physRangeStart && p <= it->physRangeStart+it->rangeLength*PAGE_SIZE)) {
+		// We have foudn the range that includes the start address, lets make sure
+		// it includes the end.
+		if( pages_needed <= it->rangeLength) {
+			// This is it.
+
+			// There are three cases that needs to be dealt with,
+			// 1) the case where p is at the very beginnig 
+			// of the memrange, in which case one new descriptor is needed.
+			// 2) The case where its in the middle, in which case two new 
+			//    descriptors are needed (one for p and length, on for the 
+			//    free space at the end)
+			// 3) Rare case where p is in the middle of the range
+			//    but ends at the very end.
+			//
+
+			if( p == it->physRangeStart) {
+				// Insert a new memrange before. (Case 1)
+				memrange * newly_minted = find_free_memrange_descriptor();
+				newly_minted->next_memrange = it;
+				newly_minted->in_use=1;
+				newly_minted->physRangeStart = it->physRangeStart;
+				newly_minted->rangeLength = pages_needed;
+
+				// Adjust the range that had the free
+				it->physRangeStart += PAGE_SIZE * pages_needed;
+				it->rangeLength -= pages_needed; // Give one up to newly_minted
+
+				// insert newly_minted 
+				if(it_prev) {
+					it_prev->next_memrange = newly_minted;
+				}
+
+				// Check if this segment is now empty
+				if(it->rangeLength == 0) {
+					memory_phys_collapse_memrange(it_prev, it);
+				}
+			} else {
+				// Insert a new memrange in the middle, (or at the tail)
+				// Case 2 and 3
+
+				memrange * newly_minted_middle = find_free_memrange_descriptor();
+				memrange * newly_minted_end = find_free_memrange_descriptor();
+				int oldRangeLength = it->rangeLength;
+				// First, cut off the "it" range at a page boundary
+				// prior to p
+				it->rangeLength = (p - it->physRangeStart) / PAGE_SIZE;
+				newly_minted_end->next_memrange = it->next_memrange;
+				it->next_memrange = newly_minted_middle;
+
+				// adjust the middle to fit the requested p and length
+				newly_minted_middle->in_use = 1;
+				newly_minted_middle->next_memrange = newly_minted_end;
+				// Dont use P here, need the page boundary prior. 
+				newly_minted_middle->physRangeStart = it->physRangeStart + it->rangeLength*PAGE_SIZE;
+				newly_minted_middle->rangeLength = ((p + length - newly_minted_middle->physRangeStart)+(PAGE_SIZE-1))/PAGE_SIZE;
+				newly_minted_middle->in_use = 1;
+
+				newly_minted_end->in_use = 0;
+				newly_minted_end->physRangeStart = newly_minted_middle->physRangeStart + newly_minted_middle->rangeLength*PAGE_SIZE;
+				newly_minted_end->rangeLength = (oldRangeLength - newly_minted_middle->rangeLength) - it->rangeLength;
+			}
+		} else {
+			it_prev = it;
+			it=it->next_memrange;
+		}			
+
+	}
+
+	return 0;
+}
+
 
 // Allocates a physical page
 void * memory_phys_alloc_page(int count) {
@@ -235,7 +333,8 @@ void * memory_phys_alloc_page(int count) {
 		it->rangeLength -= count; // Give one up to newly_minted
 		
 		// insert newly_minted 
-		it_prev->next_memrange = newly_minted;
+		if(it_prev)
+			it_prev->next_memrange = newly_minted;
 
 		// Check if this segment is now empty
 		if(it->rangeLength == 0) {
@@ -249,6 +348,23 @@ void memory_phys_alloc_free(void * p) {
 
 }
 
+
+void memory_phys_print_memranges(){
+	int idx = 0;
+	console_kprint("memory_phys_print_memranges\n");
+	for( memrange * it = first_memrange_map ; it != 0 ; it = it->next_memrange ) {
+		int location = (it - first_memrange_map) / sizeof(*it);
+		console_kprint_uint64(idx);
+		console_kprint(",");
+		console_kprint_uint64(location);
+		console_kprint(" a:");
+		console_kprint_hex(it->physRangeStart);
+		console_kprint(" length:");
+		console_kprint_hex(it->rangeLength);
+		console_kprint("\n");
+	}
+	console_kprint("\n");
+}
 
 
 
