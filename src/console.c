@@ -57,6 +57,11 @@ void console_kprint(const char *message) {
     console_kprint_at(message, -1, -1);
 }
 
+void console_kprint_char(const char c) {
+    char buff[2]={c,0};
+    console_kprint_at(buff, -1, -1);
+}
+
 void console_kprint_uint64(uint64_t i) {
     char numberbuff[21];// "-9223372036854775806"
     int_to_ascii_unsafe(i,numberbuff);
