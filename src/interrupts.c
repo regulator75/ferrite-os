@@ -1,7 +1,7 @@
 #include "console.h"
 #include "types.h"
 #include "ports.h"
-
+#include "keyboard.h"
 #include "interrupts.h"
 
 /** Interrupts.cpp
@@ -190,16 +190,18 @@ void interupt_request_line_handler(isr_irq_handler_parameters r) {
         isr_t handler = interrupt_handlers[r.int_no];
         handler(r);
     }*/
-    console_kprint("received IRQ: ");
-    console_kprint_uint64(r.code);
-    console_kprint("\n");
     if(r.code == 1) {
+		// We know what this is, quietly pass this 
+		// off to the keyboard handler.
 	    int keycode = port_byte_in(0x60);
-
-	    console_kprint("(Keyboard) Scancode : ");
-	    console_kprint_uint64(keycode);
-	    console_kprint("\n");
-    }
+		keyboard_register_keypress_scancode(keycode);
+    } else {
+		// Something we dont know about, yell about it
+		// on the screen.
+		console_kprint("received IRQ: ");
+		console_kprint_uint64(r.code);
+		console_kprint("\n");
+	}
     ////print_isr_irq_handler_parameters(&r);
 
 }

@@ -9,7 +9,8 @@ OBJ= \
 	 obj/ports.o \
 	 obj/interrupts_lowlevel.o \
 	 obj/timer.o \
-	 obj/pagetable_64.o
+	 obj/pagetable_64.o \
+	 obj/keyboard.o
 #	 obj/pagetable_32.o
 
 # 	 obj/printf.o  obj/main.o obj/memory_stuff.o \
