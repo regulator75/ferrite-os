@@ -18,6 +18,7 @@ void * __attribute__((nothrow)) malloc(size_t);
 void timer_install();
 
 void kernel_c_entry(void) {
+	memory_phys_map_init();
 	console_init();
 	pagetable_init(0x9000); // This is where the asm code places it. Ugly code I know. 
 	interrupts_install();	
@@ -26,10 +27,6 @@ void kernel_c_entry(void) {
 	volatile int b = 0;
 
 	console_kprint_at("Ferrite OS 0.0.0.0",0,1);
-
-	console_kprint_at("Hello at 10,3\n",10,3);
-
-	console_kprint("\nTesting multi line\nSecond line");
 
 //	memory_analyze_and_print();
 
@@ -46,8 +43,16 @@ void kernel_c_entry(void) {
 
 	//free(p);
 
+	console_kprint("\nm -> print memory layout");
 	while(1==1) {
-		console_kprint_char((char)keyboard_getc());
+		char c = (char)keyboard_getc();
+		console_kprint_char(c);
+		console_kprint_char('\n');
+		switch(c) {
+			case 'm': memory_phys_print_map();
+
+		}
+
 	}
 		;
 }

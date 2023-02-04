@@ -37,15 +37,17 @@ uint32_t loaded_entries;
 memory_region_t memory_region_map[256];
 
 
+void memory_phys_map_init() {
+	memory_copy((const char*)0x5000, ( char*)&memory_region_map[0],sizeof(memory_region_map));
+}
+
 
 /** 
  * Diagnoses what memory we have and print a 
  * map to console
  */
- 
-void memory_analyze_and_print() {
 
-	memory_copy((const char*)0x5000, ( char*)&memory_region_map[0],sizeof(memory_region_map));
+void memory_phys_print_map() {
 	console_kprint("\nMemory map: ");
 	console_kprint_uint64(loaded_entries);
 	console_kprint("\n");
