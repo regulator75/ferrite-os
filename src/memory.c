@@ -37,8 +37,8 @@ uint32_t loaded_entries;
 memory_region_t memory_region_map[256];
 
 
-void memory_phys_map_init() {
-	memory_copy((const char*)0x5000, ( char*)&memory_region_map[0],sizeof(memory_region_map));
+void memory_phys_map_init(void * src) {
+	memory_copy((const char*)src, ( char*)&memory_region_map[0],sizeof(memory_region_map));
 }
 
 

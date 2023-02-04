@@ -18,7 +18,7 @@ void * __attribute__((nothrow)) malloc(size_t);
 void timer_install();
 
 void kernel_c_entry(void) {
-	memory_phys_map_init();
+	memory_phys_map_init(0x5000);
 	console_init();
 	pagetable_init(0x9000); // This is where the asm code places it. Ugly code I know. 
 	interrupts_install();	
