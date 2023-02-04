@@ -140,7 +140,7 @@ void set_idt_gate(int n, uint64_t handler) {
 }
 
 void print_idt_gate(int n) {
-	console_kprint_at("IDT gate#",0,1);
+	console_kprint("\nIDT gate#");
 	console_kprint_uint64(n);
     console_kprint("\n low_offset   ");console_kprint_hex( s_idt[n].low_offset );
     console_kprint("\n sel          ");console_kprint_hex(s_idt[n].sel          );
