@@ -87,19 +87,28 @@ switch_to_longmode:
 ;
 ; Prepare the Funky tables for page-shit and shit
 ;
-;
+
+    ; Tried to move this to C code compiled to 32 bit
+    ; but GDB was wonky for me and would not let debug it
+    ;[extern pagetable_init]
+    ; Align the stack pointer to 16-bytes 
+    ;push esp ; messing with it... so keep it??
+    ;and  esp, 0xfffffff0
+    ;push edi
+    ;call pagetable_init
+    ;pop edi
+    ;pop esp
+
 
 ; Zero out the 16KiB buffer.
 ; Since we are doing a rep stosd, count should be bytes/4.   
     push di                           ; REP STOSD alters DI.
-    mov ecx, 0x1000
+    mov ecx, 0x1000 ; 16kb/4
     xor eax, eax
     cld
     rep stosd
     pop di                            ; Get DI back.
 
-
- 
 ; Build the Page Map Level 4.
 ; es:di points to the Page Map Level 4 table.
     lea eax, [es:di + 0x1000]         ; Put the address of the Page Directory Pointer Table in to EAX.
@@ -129,9 +138,14 @@ switch_to_longmode:
     mov [es:di], eax
     add eax, 0x1000
     add di, 8
-    cmp eax, 0x200000                 ; If we did all 2MiB, end.
+    cmp eax, 0x200000;          ; Check if we are done
     jb .LoopPageTable
- 
+
+    ; Bad idea, cant do this in the leaf page table
+    ;mov eax, 0xfee00000 | PAGE_PRESENT | PAGE_WRITE
+    ;mov [es:di], eax
+    ;add di, 8 ; Not needed, we are done iterating, but make it easier for future maintainers.
+
     pop di                            ; Restore DI.
 
 ;
@@ -140,6 +154,8 @@ switch_to_longmode:
     mov cr4, eax
  
     mov edx, edi                      ; Point CR3 at the PML4.
+    ;[extern P4table]
+    ;mov edx, P4table 
     mov cr3, edx
  
     mov ecx, 0xC0000080               ; Read from the EFER MSR. 
@@ -178,9 +194,9 @@ switch_to_longmode:
 	ret
 
 
-MSG_NOLONGMODE: db 'NoLongMode',0
-MSG_NOCPUID: db 'NoCPUID',0
-MSG_NOTDONE: db 'More needed',0
-MSG_SWITCHING_TO_LONGMODE: db "Going longmode",0
+MSG_NOLONGMODE: db 'NoLngMd',0
+MSG_NOCPUID: db '->NoCP',0 ; NoCPUID
+MSG_NOTDONE: db 'More..',0 ; More Needed
+MSG_SWITCHING_TO_LONGMODE: db "-> LM",0 ; To Longmode
 MSG_SWITCHING_TO_LONGMODE_FAIL: db "FAIL",0
 
