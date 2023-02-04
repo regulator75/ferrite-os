@@ -53,16 +53,16 @@ typedef struct __attribute__((packed)) {
 
 // Instansiate a table of interrupt handlers.
 // This thing needs to be initalized properly.
-static gate_struct __attribute((aligned(16))) s_idt[256]; // It must always be 256, its the CPU architecture that says this.
+/*static*/ gate_struct __attribute((aligned(16))) s_idt[256]; // It must always be 256, its the CPU architecture that says this.
 
 // Instansiate the "root node for interrupt information".
 // This instance will be pointed to by
-static idt_register_t __attribute((aligned(16))) s_idt_reg;
+/*static*/ idt_register_t __attribute((aligned(16))) s_idt_reg;
 /* A pointer to the array of interrupt handlers.
  * Assembly instruction 'lidt' will read it */
 
 /** Ferrite OS will hold the C level handlers in this array */
-static irq_handler_func_t __attribute((aligned(16))) s_handlers[256];
+/*static*/ irq_handler_func_t __attribute((aligned(16))) s_handlers[256];
 
 /** Support for messages */
 const char  *interupt_service_request_handler_exception_messages[] = {

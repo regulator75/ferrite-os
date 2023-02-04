@@ -1,15 +1,15 @@
 #include "keyboard.h"
 
 #define SCANCODE_BUFFER_LENGTH 8
-static volatile int scancode_buffer_head = 0;
-static volatile int scancode_buffer_tail = 0;
+/*static*/ volatile int scancode_buffer_head = 0;
+/*static*/ volatile int scancode_buffer_tail = 0;
 
-static unsigned int scancode_buffer[SCANCODE_BUFFER_LENGTH];
+/*static*/ unsigned int scancode_buffer[SCANCODE_BUFFER_LENGTH];
 
 
 /** Local functions */
 int _scancode_to_unicode( unsigned int scancode ) {
-    static const char kbd_US [128] =
+    const char kbd_US [128] =
         {
             0,  27, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', '\b',   
             '\t', /* <-- Tab */
