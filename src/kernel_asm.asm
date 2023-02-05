@@ -55,6 +55,8 @@ BEGIN_64:
     mov rax, 0x1F211F641F6C1F72
     mov [edi + 16], rax
 
+    [extern _stack_end]
+    mov esp, _stack_end
 
 	mov rbx, MSG_64_IS_DA_SHIT	
 	call print64_string_pm

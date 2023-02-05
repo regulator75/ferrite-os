@@ -48,14 +48,16 @@ SECTIONS
 
 
 
-/*    stack section
+/*    stack section */
     .stack (NOLOAD):
     {
         . = ALIGN(8);
+        _stack_begin = . ;
         . = . + STACK_SIZE;
         . = ALIGN(8);
+        _stack_end = . ;
     } > ram
-*/
+
     _end = . ;
     _kernel_end = . ;
 }
